@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Medicine Reminders — MediSmart AI{% endblock %}
+
+{% block extra_css %}
+<style>
+.reminder-time-group {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 8px;
+}
+.clock-ring {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 1rem; font-weight: 800;
+  flex-shrink: 0; box-shadow: 0 4px 12px rgba(10,110,110,.25);
+  flex-direction: column; line-height: 1.2;
+}
+.clock-ring .time-sm { font-size: .58rem; font-weight: 500; opacity: .85; }
+.repeat-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 9999px;
+  font-size: .72rem; font-weight: 700;
+}
+.add-reminder-card {
+  background: #fff; border-radius: var(--radius-md);
+  border: 1px solid var(--border); padding: 24px; margin-bottom: 28px;
+}
+.add-reminder-card h3 { font-size: 1rem; margin-bottom: 18px;
+  display: flex; align-items: center; gap: 8px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.med-suggestion {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-md);
+  z-index: 100; max-height: 180px; overflow-y: auto; display: none;
+}
+.med-suggestion.open { display: block; }
+.med-sug-item {
+  padding: 9px 14px; cursor: pointer; font-size: .86rem;
+  transition: var(--transition);
+}
+.med-sug-item:hover { background: var(--bg-muted); color: var(--primary); }
+.reminder-empty {
+  text-align: center; padding: 56px 20px;
+  background: #fff; border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="med-page-header">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="/">Home</a><span>›</span>
+      <a href="/dashboard">Dashboard</a><span>›</span>
+      <span class="active">Medicine Reminders</span>
+    </div>
+    <h1>⏰ Medicine Reminders</h1>
+    <p>Never miss a dose — set reminders for all your medicines</p>
+  </div>
+</div>
+
+<div class="container" style="padding:32px 20px 64px;">
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:start;">
+
+    <!-- ── LEFT: Add + List ── -->
+    <div>
+
+      <!-- Add reminder form -->
+      <div class="add-reminder-card">
+        <h3>➕ Add New Reminder</h3>
+        <form method="POST" action="/reminders">
+          <input type="hidden" name="action" value="add" />
+
+          <div class="form-group" style="position:relative;">
+            <label class="form-label">Medicine Name</label>
+            <input type="text" name="medicine_name" id="medNameInput" class="input"
+                   placeholder="e.g. Metformin 500mg"
+                   autocomplete="off"
+                   oninput="suggestMed(this.value)" required />
+            <div class="med-suggestion" id="medSuggestion"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Dose / Quantity</label>
+              <input type="text" name="dose" class="input"
+                     placeholder="e.g. 1 tablet, 2 capsules" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reminder Time</label>
+              <input type="time" name="time" class="input" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Repeat</label>
+              <select name="repeat" class="select">
+                <option value="daily">Every Day</option>
+                <option value="twice_daily">Twice Daily</option>
+                <option value="weekly">Every Week</option>
+                <option value="alternate">Alternate Days</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notes (optional)</label>
+              <input type="text" name="notes" class="input"
+                     placeholder="e.g. Take after food" />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            ⏰ Set Reminder
+          </button>
+        </form>
+      </div>
+
+      <!-- Reminders list -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h3 style="font-size:1rem;">
+          Your Reminders
+          <span class="badge badge-primary" style="margin-left:6px;">{{ reminders|length }}</span>
+        </h3>
+        {% if reminders %}
+        <span style="font-size:.82rem;color:var(--text-muted);">
+          {{ reminders|selectattr('active')|list|length }} active
+        </span>
+        {% endif %}
+      </div>
+
+      {% if reminders %}
+        {% for r in reminders | sort(attribute='time') %}
+        <div class="reminder-card">
+          <!-- Clock -->
+          <div class="clock-ring">
+            <span>{{ r.time }}</span>
+          </div>
+
+          <!-- Info -->
+          <div class="reminder-info">
+            <div class="reminder-name">💊 {{ r.medicine_name }}</div>
+            <div class="reminder-meta" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+              {% if r.dose %}
+              <span>📏 {{ r.dose }}</span>
+              {% endif %}
+              <span class="repeat-badge
+                {% if r.repeat == 'daily' %}badge-success
+                {% elif r.repeat == 'twice_daily' %}badge-info
+                {% elif r.repeat == 'weekly' %}badge-warning
+                {% else %}badge-gray{% endif %}">
+                🔄 {{ r.repeat | replace('_', ' ') | title }}
+              </span>
+              {% if r.notes %}
+              <span style="color:var(--text-muted);">📝 {{ r.notes }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Delete -->
+          <form method="POST" action="/reminders" style="flex-shrink:0;">
+            <input type="hidden" name="action" value="delete" />
+            <input type="hidden" name="reminder_id" value="{{ r.id }}" />
+            <button type="submit" class="item-remove"
+                    onclick="return confirm('Delete this reminder?')"
+                    title="Delete reminder">
+              🗑
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+
+      {% else %}
+        <div class="reminder-empty">
+          <div style="font-size:3.5rem;margin-bottom:16px;">⏰</div>
+          <h3>No reminders set yet</h3>
+          <p style="margin-bottom:0;">Add your first medicine reminder above to never miss a dose.</p>
+        </div>
+      {% endif %}
+
+    </div>
+
+    <!-- ── RIGHT: Tips sidebar ── -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Today's schedule -->
+      <div style="background:#fff;border-radius:var(--radius-md);border:1px solid var(--border);padding:20px;">
+        <h4 style="margin-bottom:14px;font-size:.92rem;">📅 Today's Schedule</h4>
+        {% if reminders %}
+          {% for r in reminders | sort(attribute='time') %}
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;
+                      border-bottom:1px solid var(--border);">
+            <div style="width:8px;height:8px;border-radius:50%;
+                        background:var(--success);flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:.84rem;font-weight:600;">{{ r.medicine_name }}</div>
+              <div style="font-size:.74rem;color:var(--text-muted);">{{ r.time }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p style="font-size:.84rem;color:var(--text-muted);text-align:center;padding:12px 0;">
+            No medicines scheduled today
+          </p>
+        {% endif %}
+      </div>
+
+      <!-- Tips -->
+      <div style="background:#fff;border-radius:var(--radius-md);border:1px solid var(--border);padding:20px;">
+        <h4 style="margin-bottom:14px;font-size:.92rem;">💡 Medicine Tips</h4>
+        {% for tip in [
+          ('🕗', 'Take medicines at the same time every day for best results.'),
+          ('🍽', 'Many medicines work better when taken with or after food.'),
+          ('💧', 'Always take tablets with a full glass of water.'),
+          ('🚫', 'Never skip doses — complete your full course.'),
+          ('❄️', 'Store medicines in a cool, dry place away from sunlight.')
+        ] %}
+        <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);
+                    font-size:.82rem;color:var(--text-secondary);line-height:1.5;">
+          <span style="flex-shrink:0;">{{ tip[0] }}</span>
+          <span>{{ tip[1] }}</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Order medicines -->
+      <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);
+                  border:1px solid #bbf7d0;border-radius:var(--radius-md);padding:18px;text-align:center;">
+        <div style="font-size:1.8rem;margin-bottom:8px;">💊</div>
+        <h4 style="font-size:.9rem;margin-bottom:6px;">Running low on medicines?</h4>
+        <p style="font-size:.8rem;color:var(--text-secondary);margin-bottom:14px;">
+          Order a refill with free delivery on orders above ₹299.
+        </p>
+        <a href="/medicines" class="btn btn-primary btn-sm btn-block" style="justify-content:center;">
+          Order Medicines →
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ALL_MEDS = [
+  {% for m in medicines %}"{{ m.name }}"{% if not loop.last %},{% endif %}{% endfor %}
+];
+
+function suggestMed(val) {
+  const box = document.getElementById('medSuggestion');
+  if (!val || val.length < 2) { box.classList.remove('open'); return; }
+  const matches = ALL_MEDS.filter(m => m.toLowerCase().includes(val.toLowerCase())).slice(0, 6);
+  if (!matches.length) { box.classList.remove('open'); return; }
+  box.innerHTML = matches.map(m =>
+    `<div class="med-sug-item" onclick="pickMed('${m}')">${m}</div>`
+  ).join('');
+  box.classList.add('open');
+}
+
+function pickMed(name) {
+  document.getElementById('medNameInput').value = name;
+  document.getElementById('medSuggestion').classList.remove('open');
+}
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('medNameInput').contains(e.target))
+    document.getElementById('medSuggestion').classList.remove('open');
+});
+</script>
+{% endblock %}

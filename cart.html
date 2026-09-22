@@ -1,0 +1,627 @@
+{% extends "base.html" %}
+
+{% block title %}Your Cart — MediSmart AI{% endblock %}
+{% block meta_desc %}Review your cart and checkout securely on MediSmart AI.{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Page header ── */
+.cart-page-header {
+  background: linear-gradient(135deg, #064f4f, #0a6e6e);
+  padding: 28px 0;
+}
+.cart-page-header h1 { color: #fff; font-size: 1.6rem; }
+.cart-page-header p  { color: rgba(255,255,255,.7); font-size: .88rem; margin-top: 4px; }
+
+/* ── Layout ── */
+.cart-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 28px;
+  padding: 32px 0 64px;
+  align-items: start;
+}
+
+/* ── Cart items panel ── */
+.cart-items-panel {}
+.cart-toolbar {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; flex-wrap: wrap; gap: 12px;
+}
+.cart-toolbar h3 { font-size: 1rem; margin: 0; }
+.cart-toolbar-count { color: var(--text-muted); font-size: .85rem; }
+.btn-clear-cart {
+  background: none; border: 1.5px solid var(--danger);
+  color: var(--danger); border-radius: var(--radius-full);
+  padding: 6px 14px; font-size: .82rem; font-weight: 600;
+  cursor: pointer; transition: var(--transition);
+}
+.btn-clear-cart:hover { background: var(--danger); color: #fff; }
+
+/* Cart item card */
+.cart-item {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 18px 20px;
+  display: flex; gap: 18px; align-items: flex-start;
+  margin-bottom: 12px; transition: var(--transition);
+  position: relative;
+}
+.cart-item:hover { box-shadow: var(--shadow-sm); }
+.cart-item-img {
+  width: 88px; height: 88px; object-fit: contain;
+  border-radius: var(--radius-sm); background: var(--bg-muted);
+  padding: 8px; flex-shrink: 0;
+}
+.cart-item-body { flex: 1; min-width: 0; }
+.cart-item-category {
+  font-size: .72rem; font-weight: 700; color: var(--primary);
+  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px;
+}
+.cart-item-name {
+  font-size: 1rem; font-weight: 700; color: var(--text-primary);
+  margin-bottom: 4px; line-height: 1.3;
+}
+.cart-item-name a { color: inherit; }
+.cart-item-name a:hover { color: var(--primary); }
+.cart-item-brand { font-size: .8rem; color: var(--text-muted); margin-bottom: 10px; }
+.cart-item-controls {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+
+/* Qty stepper */
+.item-qty {
+  display: flex; align-items: center;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.item-qty-btn {
+  width: 32px; height: 32px; background: var(--bg-muted);
+  border: none; font-size: 1.1rem; font-weight: 700;
+  cursor: pointer; transition: var(--transition); color: var(--text-primary);
+}
+.item-qty-btn:hover { background: var(--primary); color: #fff; }
+.item-qty-val {
+  width: 42px; height: 32px; text-align: center;
+  border: none; border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  font-weight: 700; font-size: .9rem; background: #fff;
+  font-family: inherit; color: var(--text-primary);
+}
+
+/* Price in cart */
+.cart-item-price-col {
+  text-align: right; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 6px;
+}
+.item-price-total {
+  font-size: 1.05rem; font-weight: 800; color: var(--text-primary);
+}
+.item-price-unit { font-size: .78rem; color: var(--text-muted); }
+.item-remove {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: .8rem;
+  transition: var(--transition); display: flex; align-items: center; gap: 4px;
+}
+.item-remove:hover { color: var(--danger); }
+
+/* Rx warning on cart item */
+.cart-rx-warn {
+  display: flex; align-items: center; gap: 8px;
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: var(--radius-sm); padding: 8px 12px;
+  margin-top: 10px; font-size: .8rem; color: #92400e;
+}
+
+/* ── Empty cart ── */
+.empty-cart {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 80px 24px;
+  text-align: center;
+}
+.empty-cart .icon { font-size: 4rem; margin-bottom: 20px; }
+.empty-cart h3 { margin-bottom: 8px; }
+.empty-cart p  { margin-bottom: 24px; }
+
+/* ── Order summary panel ── */
+.order-summary {
+  position: sticky; top: calc(var(--nav-height) + 16px);
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--radius-md); overflow: hidden;
+}
+.summary-header {
+  background: var(--primary); color: #fff; padding: 16px 20px;
+}
+.summary-header h3 { color: #fff; font-size: 1rem; margin: 0; }
+.summary-body { padding: 20px; }
+
+/* Coupon input */
+.coupon-row {
+  display: flex; gap: 8px; margin-bottom: 20px;
+}
+.coupon-row input {
+  flex: 1; padding: 9px 12px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-size: .88rem;
+  font-family: inherit; outline: none; transition: var(--transition);
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.coupon-row input:focus { border-color: var(--primary); }
+.coupon-row button {
+  background: var(--primary); color: #fff; border: none;
+  border-radius: var(--radius-sm); padding: 9px 16px;
+  font-size: .84rem; font-weight: 700; cursor: pointer;
+  transition: var(--transition); white-space: nowrap;
+}
+.coupon-row button:hover { background: var(--primary-light); }
+.coupon-success {
+  background: #f0fdf4; border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm); padding: 9px 12px;
+  font-size: .82rem; color: #15803d; font-weight: 600;
+  margin-bottom: 16px; display: none;
+}
+.coupon-success.visible { display: block; }
+
+/* Price breakdown */
+.price-row {
+  display: flex; justify-content: space-between;
+  align-items: center; padding: 9px 0;
+  font-size: .9rem; color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.price-row:last-of-type { border-bottom: none; }
+.price-row .label { display: flex; align-items: center; gap: 6px; }
+.price-row .val   { font-weight: 600; color: var(--text-primary); }
+.price-row.discount .val { color: var(--success); }
+.price-row.total {
+  font-size: 1.05rem; font-weight: 800;
+  color: var(--text-primary); border-top: 2px solid var(--border);
+  padding-top: 14px; margin-top: 4px;
+}
+.price-row.total .val { font-size: 1.2rem; color: var(--primary); }
+
+/* Savings banner */
+.savings-banner {
+  background: #f0fdf4; border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm); padding: 10px 14px;
+  text-align: center; font-size: .84rem; font-weight: 600;
+  color: #15803d; margin: 14px 0;
+}
+
+/* Checkout button */
+.btn-checkout {
+  width: 100%; padding: 14px; border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: #fff; font-size: 1rem; font-weight: 700;
+  border: none; cursor: pointer; transition: var(--transition);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 16px rgba(10,110,110,.3);
+  margin-bottom: 12px;
+}
+.btn-checkout:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,110,110,.35); }
+.btn-checkout:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.continue-shopping {
+  display: block; text-align: center;
+  color: var(--primary); font-size: .88rem; font-weight: 600;
+  padding: 8px; transition: var(--transition);
+}
+.continue-shopping:hover { color: var(--primary-light); }
+
+/* Trust badges */
+.trust-badges {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-top: 16px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.trust-badge {
+  flex: 1; min-width: 80px; text-align: center;
+  font-size: .7rem; color: var(--text-muted); padding: 6px 4px;
+}
+.trust-badge .icon { font-size: 1.1rem; display: block; margin-bottom: 3px; }
+
+/* ── Prescription upload banner ── */
+.rx-upload-banner {
+  background: #fffbeb; border: 1.5px dashed #fbbf24;
+  border-radius: var(--radius-md); padding: 20px 22px;
+  margin-bottom: 16px; display: none;
+}
+.rx-upload-banner.visible { display: block; }
+.rx-upload-banner h4 { color: #92400e; margin-bottom: 6px; font-size: .95rem; }
+.rx-upload-banner p  { color: #78350f; font-size: .84rem; margin-bottom: 14px; }
+.rx-upload-btn {
+  background: #f59e0b; color: #fff; border: none;
+  border-radius: var(--radius-full); padding: 9px 20px;
+  font-weight: 700; font-size: .88rem; cursor: pointer;
+  transition: var(--transition);
+}
+.rx-upload-btn:hover { background: #d97706; }
+
+/* ── Recommended add-ons ── */
+.recommended-section {
+  margin-top: 24px;
+}
+.recommended-section h4 { font-size: .92rem; margin-bottom: 14px; }
+.recommended-list { display: flex; flex-direction: column; gap: 10px; }
+.recommended-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg-muted); border-radius: var(--radius-sm);
+  padding: 10px 12px; transition: var(--transition); cursor: pointer;
+}
+.recommended-item:hover { background: rgba(10,110,110,.06); }
+.rec-img {
+  width: 44px; height: 44px; object-fit: contain;
+  background: #fff; border-radius: var(--radius-sm); padding: 4px; flex-shrink: 0;
+}
+.rec-info { flex: 1; min-width: 0; }
+.rec-name { font-size: .83rem; font-weight: 600; color: var(--text-primary); }
+.rec-price { font-size: .78rem; color: var(--primary); font-weight: 700; }
+.rec-add {
+  background: var(--primary); color: #fff; border: none;
+  border-radius: 9999px; padding: 5px 12px;
+  font-size: .75rem; font-weight: 700; cursor: pointer;
+  transition: var(--transition); flex-shrink: 0;
+}
+.rec-add:hover { background: var(--primary-light); }
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .cart-layout { grid-template-columns: 1fr 300px; }
+}
+@media (max-width: 768px) {
+  .cart-layout { grid-template-columns: 1fr; }
+  .order-summary { position: static; }
+}
+@media (max-width: 480px) {
+  .cart-item { flex-direction: column; }
+  .cart-item-price-col { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Header ── -->
+<div class="cart-page-header">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="/">Home</a><span>›</span>
+      <span class="active">Shopping Cart</span>
+    </div>
+    <h1>🛒 Your Cart</h1>
+    <p id="cartHeaderCount">Loading cart…</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="cart-layout">
+
+    <!-- ─────────────── ITEMS PANEL ─────────────── -->
+    <div class="cart-items-panel">
+
+      <!-- Prescription upload notice (shown when Rx items are in cart) -->
+      <div class="rx-upload-banner" id="rxUploadBanner">
+        <h4>📋 Prescription Required</h4>
+        <p>One or more items in your cart require a valid prescription. Please upload it before checkout.</p>
+        <button class="rx-upload-btn">📎 Upload Prescription</button>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="cart-toolbar">
+        <div>
+          <h3>Cart Items</h3>
+          <div class="cart-toolbar-count" id="cartToolbarCount"></div>
+        </div>
+        <button class="btn-clear-cart" onclick="confirmClearCart()">🗑 Clear Cart</button>
+      </div>
+
+      <!-- Items list (rendered by JS) -->
+      <div id="cartItemsList"></div>
+
+    </div>
+
+    <!-- ─────────────── ORDER SUMMARY ─────────────── -->
+    <div>
+      <div class="order-summary">
+        <div class="summary-header">
+          <h3>🧾 Order Summary</h3>
+        </div>
+        <div class="summary-body">
+
+          <!-- Coupon -->
+          <div class="coupon-row">
+            <input type="text" id="couponInput" placeholder="Enter coupon code" />
+            <button onclick="applyCoupon()">Apply</button>
+          </div>
+          <div class="coupon-success" id="couponSuccess"></div>
+
+          <!-- Price breakdown -->
+          <div id="summaryPrices"></div>
+
+          <!-- Savings banner -->
+          <div class="savings-banner" id="savingsBanner" style="display:none;"></div>
+
+          <!-- Checkout CTA -->
+          <button class="btn-checkout" id="checkoutBtn" onclick="proceedCheckout()">
+            🔒 Proceed to Checkout
+          </button>
+          <a href="/medicines" class="continue-shopping">← Continue Shopping</a>
+
+          <!-- Trust badges -->
+          <div class="trust-badges">
+            <div class="trust-badge"><span class="icon">🔒</span>SSL Secured</div>
+            <div class="trust-badge"><span class="icon">💳</span>Safe Pay</div>
+            <div class="trust-badge"><span class="icon">✅</span>Genuine</div>
+            <div class="trust-badge"><span class="icon">🚚</span>Fast Delivery</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recommended add-ons -->
+      <div class="recommended-section" id="recommendedSection" style="display:none;">
+        <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 18px;">
+          <h4>💡 You might also need</h4>
+          <div class="recommended-list" id="recommendedList"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Constants ────────────────────────────────────────────────
+const DELIVERY_FEE       = 49;
+const FREE_DELIVERY_MIN  = 299;
+const COUPONS = {
+  'MEDI20':   { type: 'percent', val: 20, label: '20% off applied!' },
+  'FIRST99':  { type: 'flat',    val: 99, label: '₹99 flat discount applied!' },
+  'HEALTH10': { type: 'percent', val: 10, label: '10% off applied!' },
+};
+let appliedCoupon = null;
+
+// ── Build cart UI ─────────────────────────────────────────────
+function renderCart() {
+  const cart = getCart();
+  const list = document.getElementById('cartItemsList');
+  const headerCount = document.getElementById('cartHeaderCount');
+  const toolbarCount = document.getElementById('cartToolbarCount');
+
+  const totalItems = cart.reduce((s, i) => s + i.qty, 0);
+  headerCount.textContent  = totalItems + ' item' + (totalItems !== 1 ? 's' : '') + ' in your cart';
+  toolbarCount.textContent = totalItems + ' item' + (totalItems !== 1 ? 's' : '');
+
+  if (!cart.length) {
+    list.innerHTML = `
+      <div class="empty-cart">
+        <div class="icon">🛒</div>
+        <h3>Your cart is empty</h3>
+        <p>Looks like you haven't added any medicines yet.</p>
+        <a href="/medicines" class="btn btn-primary">💊 Browse Medicines</a>
+      </div>`;
+    document.getElementById('checkoutBtn').disabled = true;
+    renderSummary(0, 0);
+    document.getElementById('rxUploadBanner').classList.remove('visible');
+    document.getElementById('recommendedSection').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('checkoutBtn').disabled = false;
+
+  // Check if any Rx item — we don't have that data here,
+  // but we can mark it via a simple heuristic or skip for Phase 1
+  list.innerHTML = cart.map(item => `
+    <div class="cart-item" id="cartItem-${item.id}">
+      <img
+        src="${item.image}"
+        alt="${item.name}"
+        class="cart-item-img"
+        onerror="this.src='https://placehold.co/88x88/e8f5e9/2e7d32?text=Med'"
+      />
+      <div class="cart-item-body">
+        <div class="cart-item-category">Medicine</div>
+        <div class="cart-item-name">
+          <a href="/medicine/${item.id}">${item.name}</a>
+        </div>
+        <div class="cart-item-brand">Unit price: ₹${item.price}</div>
+        <div class="cart-item-controls">
+          <div class="item-qty">
+            <button class="item-qty-btn" onclick="changeItemQty(${item.id}, -1)">−</button>
+            <input
+              type="number"
+              class="item-qty-val"
+              id="itemQty-${item.id}"
+              value="${item.qty}"
+              min="1" max="20"
+              onchange="setItemQty(${item.id}, this.value)"
+            />
+            <button class="item-qty-btn" onclick="changeItemQty(${item.id}, 1)">+</button>
+          </div>
+          <button class="item-remove" onclick="removeItem(${item.id})">
+            🗑 Remove
+          </button>
+          <a href="/medicine/${item.id}"
+             style="font-size:.8rem;color:var(--primary);font-weight:600;">
+            View details →
+          </a>
+        </div>
+      </div>
+      <div class="cart-item-price-col">
+        <div class="item-price-total" id="itemTotal-${item.id}">
+          ₹${(item.price * item.qty).toFixed(0)}
+        </div>
+        <div class="item-price-unit">₹${item.price} × ${item.qty}</div>
+      </div>
+    </div>
+  `).join('');
+
+  renderSummary(getSubtotal(cart), cart.length);
+  renderRecommended(cart);
+}
+
+function getSubtotal(cart) {
+  return cart.reduce((s, i) => s + i.price * i.qty, 0);
+}
+
+function renderSummary(subtotal, itemCount) {
+  const delivery     = itemCount > 0 && subtotal < FREE_DELIVERY_MIN ? DELIVERY_FEE : 0;
+  const couponDisc   = getCouponDiscount(subtotal);
+  const total        = Math.max(0, subtotal + delivery - couponDisc);
+  const totalSavings = couponDisc + (itemCount > 0 ? delivery === 0 && subtotal >= FREE_DELIVERY_MIN ? DELIVERY_FEE : 0 : 0);
+
+  const pricesEl = document.getElementById('summaryPrices');
+  pricesEl.innerHTML = `
+    <div class="price-row">
+      <span class="label">🛒 Subtotal (${itemCount} item${itemCount !== 1 ? 's' : ''})</span>
+      <span class="val">₹${subtotal.toFixed(0)}</span>
+    </div>
+    <div class="price-row">
+      <span class="label">🚚 Delivery fee</span>
+      <span class="val ${delivery === 0 ? 'discount' : ''}">
+        ${delivery === 0 ? (itemCount > 0 ? 'FREE' : '—') : '₹' + delivery}
+      </span>
+    </div>
+    ${couponDisc > 0 ? `
+    <div class="price-row discount">
+      <span class="label">🎟 Coupon discount</span>
+      <span class="val">−₹${couponDisc.toFixed(0)}</span>
+    </div>` : ''}
+    <div class="price-row total">
+      <span class="label">Total</span>
+      <span class="val">₹${total.toFixed(0)}</span>
+    </div>
+  `;
+
+  const savBanner = document.getElementById('savingsBanner');
+  if (itemCount > 0 && (couponDisc > 0 || delivery === 0)) {
+    const saved = couponDisc + (delivery === 0 && subtotal >= FREE_DELIVERY_MIN ? DELIVERY_FEE : 0);
+    savBanner.textContent = `🎉 You're saving ₹${saved.toFixed(0)} on this order!`;
+    savBanner.style.display = 'block';
+  } else if (itemCount > 0 && subtotal < FREE_DELIVERY_MIN) {
+    const needed = FREE_DELIVERY_MIN - subtotal;
+    savBanner.textContent = `🚚 Add medicines worth ₹${needed.toFixed(0)} more for FREE delivery!`;
+    savBanner.style.display = 'block';
+  } else {
+    savBanner.style.display = 'none';
+  }
+}
+
+function getCouponDiscount(subtotal) {
+  if (!appliedCoupon) return 0;
+  const c = COUPONS[appliedCoupon];
+  if (!c) return 0;
+  return c.type === 'percent' ? subtotal * c.val / 100 : Math.min(c.val, subtotal);
+}
+
+// ── Item quantity ─────────────────────────────────────────────
+function changeItemQty(id, delta) {
+  const cart = getCart();
+  const item = cart.find(i => i.id === id);
+  if (!item) return;
+  const newQty = item.qty + delta;
+  if (newQty < 1) { removeItem(id); return; }
+  updateQty(id, newQty);
+  renderCart();
+}
+
+function setItemQty(id, val) {
+  const q = Math.max(1, Math.min(20, parseInt(val) || 1));
+  updateQty(id, q);
+  renderCart();
+}
+
+function removeItem(id) {
+  removeFromCart(id);
+  // Animate removal
+  const el = document.getElementById('cartItem-' + id);
+  if (el) {
+    el.style.transition = 'all .25s ease';
+    el.style.opacity    = '0';
+    el.style.transform  = 'translateX(-20px)';
+    setTimeout(() => renderCart(), 250);
+  } else {
+    renderCart();
+  }
+}
+
+// ── Coupon ────────────────────────────────────────────────────
+function applyCoupon() {
+  const code    = document.getElementById('couponInput').value.trim().toUpperCase();
+  const success = document.getElementById('couponSuccess');
+  const cart    = getCart();
+
+  if (!code) { showToast('Please enter a coupon code', 'warning'); return; }
+  if (!COUPONS[code]) {
+    showToast('Invalid coupon code', 'error');
+    success.classList.remove('visible');
+    return;
+  }
+  appliedCoupon = code;
+  success.textContent = '✅ ' + COUPONS[code].label;
+  success.classList.add('visible');
+  showToast('Coupon applied! ' + COUPONS[code].label, 'success');
+  renderSummary(getSubtotal(cart), cart.length);
+}
+
+// ── Clear cart ────────────────────────────────────────────────
+function confirmClearCart() {
+  if (!getCart().length) return;
+  if (confirm('Remove all items from your cart?')) {
+    clearCart();
+    appliedCoupon = null;
+    document.getElementById('couponSuccess').classList.remove('visible');
+    renderCart();
+    showToast('Cart cleared', 'info');
+  }
+}
+
+// ── Checkout ──────────────────────────────────────────────────
+function proceedCheckout() {
+  const cart = getCart();
+  if (!cart.length) { showToast('Your cart is empty!', 'warning'); return; }
+  showToast('🔒 Secure checkout coming in Phase 6!', 'info');
+  // Phase 6: redirect to /checkout with order summary
+}
+
+// ── Recommended items ──────────────────────────────────────────
+function renderRecommended(cart) {
+  const cartIds = cart.map(i => i.id);
+  // Fetch a few medicines not in cart
+  fetch('/api/medicines')
+    .then(r => r.json())
+    .then(data => {
+      const recs = data.filter(m => !cartIds.includes(m.id)).slice(0, 3);
+      if (!recs.length) return;
+      const section = document.getElementById('recommendedSection');
+      const list    = document.getElementById('recommendedList');
+      list.innerHTML = recs.map(m => `
+        <div class="recommended-item" onclick="location.href='/medicine/${m.id}'">
+          <img
+            src="${m.image}" alt="${m.name}" class="rec-img"
+            onerror="this.src='https://placehold.co/44x44/e8f5e9/2e7d32?text=Med'"
+          />
+          <div class="rec-info">
+            <div class="rec-name">${m.name}</div>
+            <div class="rec-price">₹${m.price} <span style="color:var(--text-muted);font-weight:400;text-decoration:line-through;">₹${m.mrp}</span></div>
+          </div>
+          <button class="rec-add"
+            onclick="event.stopPropagation(); addToCart(${m.id}, '${m.name.replace(/'/g,"\\'")}', ${m.price}, '${m.image}'); renderCart();">
+            + Add
+          </button>
+        </div>
+      `).join('');
+      section.style.display = 'block';
+    })
+    .catch(() => {});
+}
+
+// ── Init ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  renderCart();
+  document.getElementById('nav-medicines') && document.getElementById('nav-medicines').classList.remove('active');
+});
+</script>
+{% endblock %}

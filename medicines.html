@@ -1,0 +1,572 @@
+{% extends "base.html" %}
+
+{% block title %}Medicines — MediSmart AI{% endblock %}
+{% block meta_desc %}Browse and order medicines online at up to 35% off. Filter by category, price, and prescription type.{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Page header ── */
+.med-page-header {
+  background: linear-gradient(135deg, #064f4f 0%, #0a6e6e 100%);
+  padding: 32px 0;
+}
+.med-page-header h1 { color: #fff; font-size: 1.7rem; margin-bottom: 6px; }
+.med-page-header p  { color: rgba(255,255,255,.75); font-size: .92rem; }
+.breadcrumb { margin-bottom: 10px; }
+
+/* ── Layout ── */
+.listing-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 28px;
+  align-items: start;
+  padding: 32px 0 60px;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  position: sticky; top: calc(var(--nav-height) + 16px);
+}
+.filter-card {
+  background: #fff; border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.filter-header {
+  padding: 16px 20px;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.filter-header h3 { color: #fff; font-size: 1rem; margin: 0; }
+.filter-clear {
+  font-size: .78rem; color: rgba(255,255,255,.8);
+  background: none; border: none; cursor: pointer;
+  text-decoration: underline;
+}
+.filter-clear:hover { color: #fff; }
+
+.filter-section {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.filter-section:last-child { border-bottom: none; }
+.filter-section h4 {
+  font-size: .88rem; font-weight: 700; color: var(--text-primary);
+  margin-bottom: 14px; text-transform: uppercase; letter-spacing: .4px;
+}
+
+/* Category checkboxes */
+.filter-option {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 0; cursor: pointer;
+}
+.filter-option label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .88rem; color: var(--text-secondary);
+  cursor: pointer; flex: 1;
+}
+.filter-option input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.filter-option .count {
+  font-size: .75rem; color: var(--text-muted);
+  background: var(--bg-muted); padding: 1px 7px;
+  border-radius: 9999px;
+}
+.filter-option input:checked + span { color: var(--primary); font-weight: 600; }
+
+/* Price range */
+.price-range-wrap { padding: 4px 0 8px; }
+.price-slider {
+  width: 100%; accent-color: var(--primary);
+  margin-bottom: 10px; cursor: pointer;
+}
+.price-labels {
+  display: flex; justify-content: space-between;
+  font-size: .8rem; color: var(--text-muted);
+}
+.price-display {
+  text-align: center; font-weight: 700; color: var(--primary);
+  font-size: .95rem; margin-bottom: 10px;
+}
+
+/* Rx filter */
+.rx-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.rx-pill {
+  padding: 6px 14px; border-radius: 9999px;
+  border: 1.5px solid var(--border); font-size: .82rem;
+  font-weight: 600; cursor: pointer; transition: var(--transition);
+  background: #fff; color: var(--text-secondary);
+}
+.rx-pill:hover, .rx-pill.active {
+  border-color: var(--primary); color: var(--primary);
+  background: rgba(10,110,110,.06);
+}
+
+/* Apply button */
+.filter-apply {
+  margin: 16px 20px;
+  width: calc(100% - 40px);
+  padding: 11px; border-radius: var(--radius-sm);
+  background: var(--primary); color: #fff;
+  font-weight: 700; font-size: .92rem;
+  border: none; cursor: pointer; transition: var(--transition);
+}
+.filter-apply:hover { background: var(--primary-light); }
+
+/* ── Main listing ── */
+.listing-main {}
+
+/* Toolbar */
+.listing-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fff; border-radius: var(--radius-md);
+  border: 1px solid var(--border); padding: 14px 20px;
+  margin-bottom: 20px; gap: 16px; flex-wrap: wrap;
+}
+.listing-count { font-size: .9rem; color: var(--text-secondary); }
+.listing-count strong { color: var(--text-primary); }
+.sort-wrap { display: flex; align-items: center; gap: 10px; }
+.sort-wrap label { font-size: .85rem; color: var(--text-muted); font-weight: 500; }
+.sort-select {
+  padding: 7px 12px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-size: .88rem;
+  color: var(--text-primary); background: #fff;
+  outline: none; cursor: pointer; transition: var(--transition);
+}
+.sort-select:focus { border-color: var(--primary); }
+.view-toggle { display: flex; gap: 6px; }
+.view-btn {
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border); background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: var(--transition); font-size: 1rem;
+}
+.view-btn.active, .view-btn:hover {
+  border-color: var(--primary); color: var(--primary);
+  background: rgba(10,110,110,.06);
+}
+
+/* Active filters strip */
+.active-filters {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap; margin-bottom: 16px;
+}
+.active-filters .label { font-size: .82rem; color: var(--text-muted); font-weight: 500; }
+.filter-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(10,110,110,.08); border: 1px solid rgba(10,110,110,.2);
+  color: var(--primary); padding: 4px 10px; border-radius: 9999px;
+  font-size: .78rem; font-weight: 600;
+}
+.filter-tag .remove {
+  cursor: pointer; font-size: .85rem; opacity: .6;
+  transition: var(--transition);
+}
+.filter-tag .remove:hover { opacity: 1; }
+
+/* Medicine grid */
+.med-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+}
+.med-grid.list-view {
+  grid-template-columns: 1fr;
+}
+.med-grid.list-view .med-card {
+  flex-direction: row; align-items: center;
+}
+.med-grid.list-view .med-card-img {
+  width: 120px; height: 120px; flex-shrink: 0;
+  border-radius: 0; aspect-ratio: unset;
+}
+.med-grid.list-view .med-card-body {
+  flex: 1; padding: 16px 20px;
+}
+.med-grid.list-view .med-card .rx-tag  { top: 8px; left: 8px; }
+.med-grid.list-view .med-card .discount-tag { top: 8px; right: 8px; }
+
+/* No results */
+.no-results {
+  text-align: center; padding: 80px 20px;
+  background: #fff; border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+.no-results .icon { font-size: 3.5rem; margin-bottom: 16px; }
+.no-results h3 { margin-bottom: 8px; }
+.no-results p { margin-bottom: 20px; }
+
+/* Search bar on listing page */
+.listing-search {
+  background: #fff; border-radius: var(--radius-md);
+  border: 1px solid var(--border); padding: 16px 20px;
+  margin-bottom: 16px; display: flex; gap: 12px; align-items: center;
+}
+.listing-search input {
+  flex: 1; border: 1.5px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 10px 16px; font-size: .92rem;
+  outline: none; transition: var(--transition);
+  font-family: inherit;
+}
+.listing-search input:focus { border-color: var(--primary); }
+.listing-search button {
+  background: var(--primary); color: #fff;
+  border: none; border-radius: var(--radius-full);
+  padding: 10px 22px; font-weight: 600; font-size: .9rem;
+  cursor: pointer; transition: var(--transition);
+}
+.listing-search button:hover { background: var(--primary-light); }
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .listing-layout { grid-template-columns: 220px 1fr; }
+  .med-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .listing-layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; }
+  .filter-card { display: none; }
+  .filter-card.mobile-open { display: block; }
+  .mobile-filter-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--primary); color: #fff;
+    border: none; border-radius: var(--radius-sm);
+    padding: 9px 18px; font-weight: 600; font-size: .88rem;
+    cursor: pointer; margin-bottom: 16px;
+  }
+  .med-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .med-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Page Header ── -->
+<div class="med-page-header">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="/">Home</a>
+      <span>›</span>
+      <span class="active">Medicines</span>
+      {% if active_category %}
+      <span>›</span>
+      <span class="active">{{ active_category }}</span>
+      {% endif %}
+    </div>
+    <h1>
+      {% if active_category %}{{ active_category }}
+      {% elif search_query %}Search: "{{ search_query }}"
+      {% else %}All Medicines{% endif %}
+    </h1>
+    <p>{{ total }} product{% if total != 1 %}s{% endif %} found · Genuine medicines · Fast delivery</p>
+  </div>
+</div>
+
+<!-- ── Main Layout ── -->
+<div class="container">
+  <div class="listing-layout">
+
+    <!-- ──────────── SIDEBAR ──────────── -->
+    <aside class="sidebar">
+      <button class="mobile-filter-btn" onclick="toggleMobileFilter()" style="display:none;" id="mobileFilterBtn">
+        ⚙️ Filters
+      </button>
+      <div class="filter-card" id="filterCard">
+        <div class="filter-header">
+          <h3>⚙️ Filters</h3>
+          <button class="filter-clear" onclick="clearAllFilters()">Clear all</button>
+        </div>
+
+        <form method="GET" action="/medicines" id="filterForm">
+          <!-- Hidden sort field -->
+          <input type="hidden" name="sort" id="hiddenSort" value="{{ sort }}">
+          <!-- Hidden search field -->
+          {% if search_query %}
+          <input type="hidden" name="search" value="{{ search_query }}">
+          {% endif %}
+
+          <!-- Category -->
+          <div class="filter-section">
+            <h4>Category</h4>
+            {% for cat in categories %}
+            <div class="filter-option">
+              <label>
+                <input
+                  type="radio"
+                  name="category"
+                  value="{{ cat.name }}"
+                  {% if active_category == cat.name %}checked{% endif %}
+                  onchange="this.form.submit()"
+                />
+                <span>{{ cat.icon }} {{ cat.name }}</span>
+              </label>
+            </div>
+            {% endfor %}
+            {% if active_category %}
+            <div class="filter-option" style="margin-top:8px;">
+              <label>
+                <input type="radio" name="category" value="" onchange="this.form.submit()" />
+                <span style="color:var(--danger);">✕ Clear category</span>
+              </label>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Price range -->
+          <div class="filter-section">
+            <h4>Max Price</h4>
+            <div class="price-range-wrap">
+              <div class="price-display" id="priceDisplay">
+                Up to ₹<span id="priceVal">{{ request.args.get('price_max', 500) }}</span>
+              </div>
+              <input
+                type="range" class="price-slider"
+                id="priceSlider" name="price_max"
+                min="20" max="500" step="10"
+                value="{{ request.args.get('price_max', 500) }}"
+                oninput="document.getElementById('priceVal').textContent = this.value"
+              />
+              <div class="price-labels"><span>₹20</span><span>₹500+</span></div>
+            </div>
+          </div>
+
+          <!-- Prescription type -->
+          <div class="filter-section">
+            <h4>Prescription</h4>
+            <div class="rx-pills">
+              <button type="button"
+                class="rx-pill {% if not request.args.get('rx') %}active{% endif %}"
+                onclick="setRx('')">All</button>
+              <button type="button"
+                class="rx-pill {% if request.args.get('rx') == 'otc' %}active{% endif %}"
+                onclick="setRx('otc')">OTC Only</button>
+              <button type="button"
+                class="rx-pill {% if request.args.get('rx') == 'rx' %}active{% endif %}"
+                onclick="setRx('rx')">Rx Only</button>
+            </div>
+            <input type="hidden" name="rx" id="rxInput" value="{{ request.args.get('rx', '') }}">
+          </div>
+
+          <button type="submit" class="filter-apply">Apply Filters</button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- ──────────── MAIN LISTING ──────────── -->
+    <div class="listing-main">
+
+      <!-- Inline search -->
+      <div class="listing-search">
+        <input
+          type="text"
+          id="listingSearchInput"
+          placeholder="🔍  Search medicines, brands, symptoms…"
+          value="{{ search_query }}"
+          onkeydown="if(event.key==='Enter') doListingSearch()"
+        />
+        <button onclick="doListingSearch()">Search</button>
+      </div>
+
+      <!-- Active filter tags -->
+      {% if active_category or search_query or request.args.get('rx') %}
+      <div class="active-filters">
+        <span class="label">Active filters:</span>
+        {% if active_category %}
+        <span class="filter-tag">
+          📂 {{ active_category }}
+          <span class="remove" onclick="removeFilter('category')">✕</span>
+        </span>
+        {% endif %}
+        {% if search_query %}
+        <span class="filter-tag">
+          🔍 "{{ search_query }}"
+          <span class="remove" onclick="removeFilter('search')">✕</span>
+        </span>
+        {% endif %}
+        {% if request.args.get('rx') %}
+        <span class="filter-tag">
+          💊 {{ 'OTC' if request.args.get('rx') == 'otc' else 'Rx Required' }}
+          <span class="remove" onclick="removeFilter('rx')">✕</span>
+        </span>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Toolbar -->
+      <div class="listing-toolbar">
+        <div class="listing-count">
+          Showing <strong>{{ total }}</strong> result{% if total != 1 %}s{% endif %}
+          {% if active_category %}in <strong>{{ active_category }}</strong>{% endif %}
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <div class="sort-wrap">
+            <label>Sort by:</label>
+            <select class="sort-select" id="sortSelect" onchange="applySort(this.value)">
+              <option value="" {% if not sort %}selected{% endif %}>Relevance</option>
+              <option value="price_asc"  {% if sort=='price_asc'  %}selected{% endif %}>Price: Low to High</option>
+              <option value="price_desc" {% if sort=='price_desc' %}selected{% endif %}>Price: High to Low</option>
+              <option value="discount"   {% if sort=='discount'   %}selected{% endif %}>Best Discount</option>
+              <option value="rating"     {% if sort=='rating'     %}selected{% endif %}>Top Rated</option>
+            </select>
+          </div>
+          <div class="view-toggle">
+            <button class="view-btn active" id="gridViewBtn" onclick="setView('grid')" title="Grid view">⊞</button>
+            <button class="view-btn" id="listViewBtn" onclick="setView('list')" title="List view">☰</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      {% if medicines %}
+      <div class="med-grid" id="medGrid">
+        {% for med in medicines %}
+        <div class="med-card" data-id="{{ med.id }}">
+          {% if med.prescription_required %}
+          <div class="rx-tag">Rx Required</div>
+          {% endif %}
+          <div class="discount-tag">{{ med.discount }}% OFF</div>
+
+          <a href="/medicine/{{ med.id }}">
+            <img
+              src="{{ med.image }}"
+              alt="{{ med.name }}"
+              class="med-card-img"
+              loading="lazy"
+              data-name="{{ med.name }}"
+              data-category="{{ med.category }}"
+              onerror="handleImgError(this)"
+            />
+          </a>
+
+          <div class="med-card-body">
+            <div class="med-card-category">{{ med.category }}</div>
+            <a href="/medicine/{{ med.id }}">
+              <h4 class="med-card-name">{{ med.name }}</h4>
+            </a>
+            <div class="med-card-brand">by {{ med.brand }} · {{ med.pack_size }}</div>
+            <div class="med-card-rating">
+              <span class="stars">
+                {% for i in range(med.rating | int) %}★{% endfor %}{% if med.rating % 1 >= 0.5 %}½{% endif %}
+              </span>
+              <span class="rating-text">{{ med.rating }} ({{ med.reviews }} reviews)</span>
+            </div>
+            <div class="med-card-price">
+              <span class="price">₹{{ med.price }}</span>
+              <span class="mrp">₹{{ med.mrp }}</span>
+              <span class="disc-badge">{{ med.discount }}% off</span>
+            </div>
+            {% if not med.in_stock %}
+            <div class="badge badge-danger mb-8">Out of Stock</div>
+            {% endif %}
+            <div class="med-card-footer">
+              <button
+                class="add-cart-btn {% if not med.in_stock %}disabled{% endif %}"
+                onclick="addToCart({{ med.id }}, {{ med.name | tojson }}, {{ med.price }}, {{ med.image | tojson }})"
+                id="cartBtn-{{ med.id }}"
+                {% if not med.in_stock %}disabled{% endif %}
+              >
+                {% if med.in_stock %}🛒 Add to Cart{% else %}Out of Stock{% endif %}
+              </button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% else %}
+      <!-- No results -->
+      <div class="no-results">
+        <div class="icon">🔍</div>
+        <h3>No medicines found</h3>
+        <p>Try adjusting your filters or search with different keywords.</p>
+        <a href="/medicines" class="btn btn-primary">Browse All Medicines</a>
+      </div>
+      {% endif %}
+
+    </div><!-- end listing-main -->
+  </div><!-- end listing-layout -->
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Highlight nav
+  document.getElementById('nav-medicines').classList.add('active');
+
+  // Sort
+  function applySort(val) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('sort', val);
+    window.location.href = url.toString();
+  }
+
+  // Search
+  function doListingSearch() {
+    const q = document.getElementById('listingSearchInput').value.trim();
+    const url = new URL(window.location.href);
+    if (q) url.searchParams.set('search', q);
+    else url.searchParams.delete('search');
+    url.searchParams.delete('page');
+    window.location.href = url.toString();
+  }
+
+  // Remove filter tag
+  function removeFilter(key) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete(key);
+    window.location.href = url.toString();
+  }
+
+  // Rx pill selection
+  function setRx(val) {
+    document.getElementById('rxInput').value = val;
+    document.querySelectorAll('.rx-pill').forEach(p => p.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+
+  // Clear all filters
+  function clearAllFilters() {
+    window.location.href = '/medicines';
+  }
+
+  // Grid / List view toggle
+  function setView(mode) {
+    const grid = document.getElementById('medGrid');
+    if (!grid) return;
+    if (mode === 'list') {
+      grid.classList.add('list-view');
+      document.getElementById('listViewBtn').classList.add('active');
+      document.getElementById('gridViewBtn').classList.remove('active');
+    } else {
+      grid.classList.remove('list-view');
+      document.getElementById('gridViewBtn').classList.add('active');
+      document.getElementById('listViewBtn').classList.remove('active');
+    }
+    localStorage.setItem('medView', mode);
+  }
+
+  // Restore saved view
+  const savedView = localStorage.getItem('medView');
+  if (savedView) setView(savedView);
+
+  // Mobile filter toggle
+  function toggleMobileFilter() {
+    document.getElementById('filterCard').classList.toggle('mobile-open');
+  }
+
+  // Show mobile filter button on small screens
+  if (window.innerWidth <= 768) {
+    document.getElementById('mobileFilterBtn').style.display = 'flex';
+  }
+  window.addEventListener('resize', () => {
+    document.getElementById('mobileFilterBtn').style.display =
+      window.innerWidth <= 768 ? 'flex' : 'none';
+  });
+</script>
+{% endblock %}

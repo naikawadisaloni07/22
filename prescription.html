@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Upload Prescription — MediSmart AI{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="med-page-header">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="/">Home</a><span>›</span>
+      <a href="/dashboard">Dashboard</a><span>›</span>
+      <span class="active">Upload Prescription</span>
+    </div>
+    <h1>📋 Upload Prescription</h1>
+    <p>Upload a valid prescription and our pharmacist will verify it within 30 minutes</p>
+  </div>
+</div>
+
+<div class="container" style="padding:36px 20px 64px;">
+  <div style="display:grid;grid-template-columns:1fr 360px;gap:28px;align-items:start;">
+
+    <!-- Upload form -->
+    <div>
+      <div style="background:#fff;border-radius:var(--radius-md);border:1px solid var(--border);padding:28px;">
+        <h3 style="margin-bottom:6px;">New Prescription</h3>
+        <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:24px;">
+          Upload a clear photo or PDF of your prescription. JPG, PNG, or PDF accepted.
+        </p>
+
+        <form method="POST" action="/prescription" enctype="multipart/form-data" id="rxForm">
+
+          <!-- Drag & drop upload area -->
+          <div class="rx-upload-area" id="dropZone"
+               onclick="document.getElementById('rxFile').click()">
+            <div class="icon">📎</div>
+            <h3>Click or drag &amp; drop your prescription</h3>
+            <p>Supports JPG, PNG, PDF · Max 10MB</p>
+            <div id="filePreview" style="margin-top:14px;display:none;">
+              <span class="badge badge-success" id="fileNameBadge"></span>
+            </div>
+          </div>
+          <input type="file" id="rxFile" name="prescription_file"
+                 accept=".jpg,.jpeg,.png,.pdf"
+                 style="display:none;" onchange="previewFile(this)">
+
+          <div style="margin-top:20px;">
+            <div class="form-group">
+              <label class="form-label">Doctor's Name (optional)</label>
+              <input type="text" name="doctor_name" class="input"
+                     placeholder="e.g. Dr. Priya Sharma" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Additional Notes</label>
+              <textarea name="notes" class="textarea" rows="3"
+                        placeholder="Any special instructions for our pharmacist…"></textarea>
+            </div>
+          </div>
+
+          <!-- How it works strip -->
+          <div style="background:var(--bg-muted);border-radius:var(--radius-md);
+                      padding:16px;margin-bottom:20px;display:flex;gap:20px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:140px;text-align:center;">
+              <div style="font-size:1.5rem;margin-bottom:4px;">📤</div>
+              <div style="font-size:.8rem;font-weight:600;">1. Upload</div>
+              <div style="font-size:.75rem;color:var(--text-muted);">Clear photo or PDF</div>
+            </div>
+            <div style="flex:1;min-width:140px;text-align:center;">
+              <div style="font-size:1.5rem;margin-bottom:4px;">🔍</div>
+              <div style="font-size:.8rem;font-weight:600;">2. Verification</div>
+              <div style="font-size:.75rem;color:var(--text-muted);">Pharmacist reviews in 30 min</div>
+            </div>
+            <div style="flex:1;min-width:140px;text-align:center;">
+              <div style="font-size:1.5rem;margin-bottom:4px;">💊</div>
+              <div style="font-size:.8rem;font-weight:600;">3. Order</div>
+              <div style="font-size:.75rem;color:var(--text-muted);">Medicines dispatched</div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block btn-lg">
+            📤 Upload Prescription
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Sidebar info -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <!-- Tips -->
+      <div style="background:#fff;border-radius:var(--radius-md);border:1px solid var(--border);padding:20px;">
+        <h4 style="margin-bottom:14px;">✅ Valid Prescription Must Have</h4>
+        {% for tip in [
+          "Doctor's name, qualification & registration number",
+          "Patient name and date",
+          "Medicine name, dose, and duration",
+          "Doctor's signature or stamp",
+          "Prescription date (within 6 months)"
+        ] %}
+        <div style="display:flex;gap:8px;align-items:flex-start;padding:7px 0;
+                    border-bottom:1px solid var(--border);font-size:.84rem;color:var(--text-secondary);">
+          <span style="color:var(--success);font-weight:700;flex-shrink:0;">✓</span>
+          <span>{{ tip }}</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Privacy note -->
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius-md);padding:16px;">
+        <h4 style="color:#1d4ed8;font-size:.9rem;margin-bottom:8px;">🔒 Your Privacy is Protected</h4>
+        <p style="font-size:.82rem;color:#1d4ed8;line-height:1.6;">
+          All prescription data is encrypted and handled only by licensed pharmacists.
+          We never share your medical data with third parties.
+        </p>
+      </div>
+
+      <!-- Contact -->
+      <div style="background:#fff;border-radius:var(--radius-md);border:1px solid var(--border);padding:16px;text-align:center;">
+        <div style="font-size:1.5rem;margin-bottom:6px;">📞</div>
+        <p style="font-size:.84rem;font-weight:600;margin-bottom:4px;">Need help?</p>
+        <p style="font-size:.8rem;color:var(--text-muted);">Call our pharmacist helpline</p>
+        <a href="tel:18001234567" style="color:var(--primary);font-weight:700;font-size:.95rem;">
+          1800-123-4567
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewFile(input) {
+  const preview = document.getElementById('filePreview');
+  const badge   = document.getElementById('fileNameBadge');
+  const zone    = document.getElementById('dropZone');
+  if (input.files && input.files[0]) {
+    badge.textContent = '📎 ' + input.files[0].name;
+    preview.style.display = 'block';
+    zone.style.borderColor = 'var(--primary)';
+    zone.style.background  = 'rgba(10,110,110,.04)';
+  }
+}
+// Drag & drop
+const zone = document.getElementById('dropZone');
+zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', ()  => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('rxFile').files = dt.files;
+    previewFile(document.getElementById('rxFile'));
+  }
+});
+</script>
+{% endblock %}

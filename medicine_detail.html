@@ -1,0 +1,698 @@
+{% extends "base.html" %}
+
+{% block title %}{{ medicine.name }} — MediSmart AI{% endblock %}
+{% block meta_desc %}Buy {{ medicine.name }} by {{ medicine.brand }} at ₹{{ medicine.price }}. {{ medicine.description }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Page header ── */
+.detail-header {
+  background: linear-gradient(135deg, #064f4f 0%, #0a6e6e 100%);
+  padding: 24px 0 0;
+}
+.detail-header .breadcrumb { margin-bottom: 0; padding-bottom: 20px; }
+
+/* ── Main detail layout ── */
+.detail-layout {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 36px;
+  padding: 36px 0 60px;
+  align-items: start;
+}
+
+/* ── Image panel ── */
+.detail-img-panel {
+  position: sticky;
+  top: calc(var(--nav-height) + 20px);
+}
+.detail-img-card {
+  background: #fff; border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden; margin-bottom: 16px;
+}
+.detail-img-main {
+  width: 100%; aspect-ratio: 1;
+  object-fit: contain; padding: 40px;
+  background: var(--bg-muted);
+}
+.detail-img-badges {
+  display: flex; gap: 8px; padding: 14px 18px;
+  border-top: 1px solid var(--border); flex-wrap: wrap;
+}
+.detail-guarantee {
+  background: #fff; border-radius: var(--radius-md);
+  border: 1px solid var(--border); padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.guarantee-row {
+  display: flex; align-items: center; gap: 10px;
+  font-size: .84rem; color: var(--text-secondary);
+}
+.guarantee-row .icon { font-size: 1.1rem; }
+.guarantee-row strong { color: var(--text-primary); }
+
+/* ── Info panel ── */
+.detail-info {}
+
+/* Category + title */
+.detail-category {
+  font-size: .78rem; font-weight: 700; color: var(--primary);
+  text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px;
+}
+.detail-name {
+  font-size: 1.9rem; font-weight: 800; color: var(--text-primary);
+  line-height: 1.2; margin-bottom: 4px;
+}
+.detail-brand {
+  font-size: .92rem; color: var(--text-muted); margin-bottom: 14px;
+}
+.detail-brand span { color: var(--primary); font-weight: 600; }
+
+/* Rating bar */
+.detail-rating-bar {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.rating-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #f0fdf4; border: 1px solid #bbf7d0;
+  border-radius: 9999px; padding: 6px 14px;
+  font-size: .88rem; font-weight: 700; color: #15803d;
+}
+.rating-pill .stars { font-size: 1rem; }
+.review-count { font-size: .85rem; color: var(--text-muted); }
+
+/* Price block */
+.detail-price-block {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1px solid #bbf7d0; border-radius: var(--radius-md);
+  padding: 20px 22px; margin-bottom: 20px;
+}
+.detail-price-row {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.detail-price {
+  font-size: 2rem; font-weight: 900;
+  color: var(--text-primary); font-family: 'Poppins', sans-serif;
+}
+.detail-mrp {
+  font-size: 1rem; color: var(--text-muted);
+  text-decoration: line-through;
+}
+.detail-disc {
+  background: #16a34a; color: #fff;
+  font-size: .82rem; font-weight: 700;
+  padding: 4px 12px; border-radius: 9999px;
+}
+.detail-savings {
+  font-size: .85rem; color: #15803d; font-weight: 600;
+}
+.detail-pack { font-size: .84rem; color: var(--text-muted); margin-top: 6px; }
+
+/* Rx notice */
+.rx-notice {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: var(--radius-sm); padding: 12px 16px;
+  margin-bottom: 18px; font-size: .84rem; color: #92400e;
+}
+.rx-notice .icon { font-size: 1.2rem; flex-shrink: 0; }
+
+/* Quantity selector */
+.qty-section {
+  display: flex; align-items: center; gap: 20px;
+  margin-bottom: 18px; flex-wrap: wrap;
+}
+.qty-label { font-size: .88rem; font-weight: 600; color: var(--text-secondary); }
+.qty-control {
+  display: flex; align-items: center; gap: 0;
+  border: 2px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.qty-btn {
+  width: 38px; height: 38px; background: var(--bg-muted);
+  border: none; font-size: 1.2rem; font-weight: 700;
+  cursor: pointer; transition: var(--transition);
+  color: var(--text-primary);
+}
+.qty-btn:hover { background: var(--primary); color: #fff; }
+.qty-display {
+  width: 48px; height: 38px; text-align: center;
+  font-weight: 700; font-size: .95rem;
+  border: none; border-left: 1.5px solid var(--border);
+  border-right: 1.5px solid var(--border);
+  font-family: inherit;
+}
+
+/* CTA buttons */
+.detail-cta {
+  display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.btn-add-cart {
+  flex: 1; min-width: 160px; padding: 14px 24px;
+  background: var(--primary); color: #fff;
+  border: none; border-radius: var(--radius-full);
+  font-size: 1rem; font-weight: 700; cursor: pointer;
+  transition: var(--transition); display: flex;
+  align-items: center; justify-content: center; gap: 8px;
+}
+.btn-add-cart:hover { background: var(--primary-light); transform: translateY(-1px); box-shadow: var(--shadow-hover); }
+.btn-buy-now {
+  flex: 1; min-width: 160px; padding: 14px 24px;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius-full);
+  font-size: 1rem; font-weight: 700; cursor: pointer;
+  transition: var(--transition); display: flex;
+  align-items: center; justify-content: center; gap: 8px;
+}
+.btn-buy-now:hover { background: #ea6c00; transform: translateY(-1px); }
+
+/* Delivery info */
+.delivery-info {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 16px 18px;
+  margin-bottom: 20px;
+}
+.delivery-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 0; font-size: .88rem; color: var(--text-secondary);
+}
+.delivery-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.delivery-row .icon { font-size: 1.1rem; width: 24px; text-align: center; }
+.delivery-row strong { color: var(--text-primary); }
+
+/* ── Tabs ── */
+.detail-tabs { margin-top: 12px; }
+.tab-nav {
+  display: flex; gap: 0; border-bottom: 2px solid var(--border);
+  margin-bottom: 24px; overflow-x: auto;
+}
+.tab-btn {
+  padding: 12px 20px; background: none; border: none;
+  font-size: .9rem; font-weight: 600; color: var(--text-muted);
+  cursor: pointer; transition: var(--transition);
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--primary); }
+.tab-btn.active {
+  color: var(--primary); border-bottom-color: var(--primary);
+}
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Tab content styles */
+.info-section { margin-bottom: 24px; }
+.info-section h4 {
+  font-size: .95rem; font-weight: 700; color: var(--text-primary);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.info-list {
+  list-style: none; display: flex; flex-direction: column; gap: 8px;
+}
+.info-list li {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: .88rem; color: var(--text-secondary); line-height: 1.5;
+}
+.info-list li::before {
+  content: '✓'; color: var(--success); font-weight: 700;
+  flex-shrink: 0; margin-top: 1px;
+}
+.info-list.warn li::before { content: '⚠'; color: var(--warning); }
+.info-list.danger li::before { content: '!'; color: var(--danger); font-weight: 900; }
+.info-list.info li::before { content: '↔'; color: var(--info); }
+
+.detail-description {
+  font-size: .92rem; color: var(--text-secondary);
+  line-height: 1.75; margin-bottom: 20px;
+}
+
+/* Medicine table */
+.med-info-table {
+  width: 100%; border-collapse: collapse; font-size: .88rem;
+}
+.med-info-table tr:not(:last-child) { border-bottom: 1px solid var(--border); }
+.med-info-table td { padding: 10px 14px; }
+.med-info-table td:first-child {
+  font-weight: 600; color: var(--text-secondary);
+  width: 40%; background: var(--bg-muted);
+}
+.med-info-table td:last-child { color: var(--text-primary); }
+
+/* AI Assistant box */
+.ai-assistant-box {
+  background: linear-gradient(135deg, #f0fdf4, #e0f2fe);
+  border: 1px solid #bae6fd; border-radius: var(--radius-md);
+  padding: 20px 22px; margin-bottom: 24px;
+}
+.ai-assistant-box .header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+}
+.ai-assistant-box .header h4 { color: var(--text-primary); margin: 0; font-size: .98rem; }
+.ai-chip {
+  background: linear-gradient(135deg, #0a6e6e, #0891b2);
+  color: #fff; font-size: .72rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px; letter-spacing: .3px;
+}
+.ai-questions { display: flex; flex-direction: column; gap: 8px; }
+.ai-q-btn {
+  background: #fff; border: 1px solid #bae6fd; border-radius: var(--radius-sm);
+  padding: 10px 14px; font-size: .84rem; color: var(--text-secondary);
+  cursor: pointer; text-align: left; transition: var(--transition);
+  font-family: inherit;
+}
+.ai-q-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(10,110,110,.04); }
+.ai-answer {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px;
+  margin-top: 12px; font-size: .88rem; color: var(--text-secondary);
+  line-height: 1.6; display: none;
+}
+.ai-answer.visible { display: block; }
+.ai-answer .ai-label {
+  font-weight: 700; color: var(--primary); font-size: .78rem;
+  text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px;
+}
+
+/* ── Related medicines ── */
+.related-section { padding: 40px 0; background: var(--bg-muted); }
+.related-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .detail-layout { grid-template-columns: 340px 1fr; gap: 24px; }
+  .related-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+  .detail-layout { grid-template-columns: 1fr; }
+  .detail-img-panel { position: static; }
+  .related-grid { grid-template-columns: repeat(2, 1fr); }
+  .detail-name { font-size: 1.5rem; }
+}
+@media (max-width: 480px) {
+  .related-grid { grid-template-columns: 1fr; }
+  .detail-cta { flex-direction: column; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Page Header / Breadcrumb ── -->
+<div class="detail-header">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="/">Home</a>
+      <span>›</span>
+      <a href="/medicines">Medicines</a>
+      <span>›</span>
+      <a href="/medicines?category={{ medicine.category | urlencode }}">{{ medicine.category }}</a>
+      <span>›</span>
+      <span class="active">{{ medicine.name }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Detail Layout ── -->
+<div class="container">
+  <div class="detail-layout">
+
+    <!-- ─── IMAGE PANEL ─── -->
+    <div class="detail-img-panel">
+      <div class="detail-img-card">
+        <img
+          src="{{ medicine.image }}"
+          alt="{{ medicine.name }}"
+          class="detail-img-main"
+          id="mainProductImg"
+          data-name="{{ medicine.name }}"
+          data-category="{{ medicine.category }}"
+          onerror="handleImgError(this)"
+        />
+        <div class="detail-img-badges">
+          {% if medicine.prescription_required %}
+          <span class="badge badge-warning">📋 Prescription Required</span>
+          {% else %}
+          <span class="badge badge-success">✅ No Prescription Needed</span>
+          {% endif %}
+          {% if medicine.in_stock %}
+          <span class="badge badge-success">✅ In Stock</span>
+          {% else %}
+          <span class="badge badge-danger">❌ Out of Stock</span>
+          {% endif %}
+          <span class="badge badge-primary">💊 {{ medicine.pack_size }}</span>
+        </div>
+      </div>
+
+      <div class="detail-guarantee">
+        <div class="guarantee-row">
+          <span class="icon">✅</span>
+          <span><strong>100% Genuine</strong> — Sourced from licensed manufacturers</span>
+        </div>
+        <div class="guarantee-row">
+          <span class="icon">🔄</span>
+          <span><strong>Easy Returns</strong> — 7-day return on eligible products</span>
+        </div>
+        <div class="guarantee-row">
+          <span class="icon">🔒</span>
+          <span><strong>Secure Payment</strong> — UPI, Cards, Net Banking</span>
+        </div>
+        <div class="guarantee-row">
+          <span class="icon">🚚</span>
+          <span><strong>Fast Delivery</strong> — In 30 min to 2 hrs</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── INFO PANEL ─── -->
+    <div class="detail-info">
+      <div class="detail-category">{{ medicine.category }}</div>
+      <h1 class="detail-name">{{ medicine.name }}</h1>
+      <div class="detail-brand">
+        Manufactured by <span>{{ medicine.manufacturer }}</span> · Sold as <span>{{ medicine.brand }}</span>
+      </div>
+
+      <!-- Rating -->
+      <div class="detail-rating-bar">
+        <div class="rating-pill">
+          <span class="stars">
+            {% for i in range(medicine.rating | int) %}★{% endfor %}{% if medicine.rating % 1 >= 0.5 %}½{% endif %}
+          </span>
+          {{ medicine.rating }}
+        </div>
+        <span class="review-count">{{ medicine.reviews }} verified reviews</span>
+        <span class="badge badge-success">🏆 Top Seller</span>
+      </div>
+
+      <!-- Price block -->
+      <div class="detail-price-block">
+        <div class="detail-price-row">
+          <span class="detail-price">₹{{ medicine.price }}</span>
+          <span class="detail-mrp">MRP ₹{{ medicine.mrp }}</span>
+          <span class="detail-disc">{{ medicine.discount }}% OFF</span>
+        </div>
+        <div class="detail-savings">
+          🎉 You save ₹{{ medicine.mrp - medicine.price }} on this order
+        </div>
+        <div class="detail-pack">Pack: {{ medicine.pack_size }}</div>
+      </div>
+
+      <!-- Rx notice -->
+      {% if medicine.prescription_required %}
+      <div class="rx-notice">
+        <span class="icon">📋</span>
+        <span>
+          <strong>Prescription required.</strong> Please upload a valid prescription
+          at checkout. Our pharmacist will verify before dispatch.
+        </span>
+      </div>
+      {% endif %}
+
+      <!-- Quantity -->
+      <div class="qty-section">
+        <span class="qty-label">Quantity:</span>
+        <div class="qty-control">
+          <button class="qty-btn" onclick="changeQty(-1)">−</button>
+          <input type="number" class="qty-display" id="qtyInput" value="1" min="1" max="20" readonly />
+          <button class="qty-btn" onclick="changeQty(1)">+</button>
+        </div>
+        <span style="font-size:.82rem;color:var(--text-muted);">Max 20 per order</span>
+      </div>
+
+      <!-- CTA buttons -->
+      <div class="detail-cta">
+        <button
+          class="btn-add-cart"
+          id="detailCartBtn"
+          onclick="addToCartDetail()"
+        >
+          🛒 Add to Cart
+        </button>
+        <button class="btn-buy-now" onclick="buyNow()">
+          ⚡ Buy Now
+        </button>
+      </div>
+
+      <!-- Delivery info -->
+      <div class="delivery-info">
+        <div class="delivery-row">
+          <span class="icon">🚚</span>
+          <span>
+            <strong>Free delivery</strong> on orders above ₹299 ·
+            Expected in <strong>30 min – 2 hrs</strong>
+          </span>
+        </div>
+        <div class="delivery-row">
+          <span class="icon">📍</span>
+          <span>Deliver to <strong>your location</strong> — Enter pincode to check availability</span>
+        </div>
+        <div class="delivery-row">
+          <span class="icon">🔄</span>
+          <span>
+            <strong>7-day return</strong> applicable on sealed, unopened packs
+          </span>
+        </div>
+      </div>
+
+      <!-- ── Tabs ── -->
+      <div class="detail-tabs">
+        <div class="tab-nav">
+          <button class="tab-btn active" onclick="openTab('overview', this)">Overview</button>
+          <button class="tab-btn" onclick="openTab('dosage', this)">Dosage & Use</button>
+          <button class="tab-btn" onclick="openTab('sideeffects', this)">Side Effects</button>
+          <button class="tab-btn" onclick="openTab('interactions', this)">Interactions</button>
+          <button class="tab-btn" onclick="openTab('info', this)">Product Info</button>
+        </div>
+
+        <!-- Overview tab -->
+        <div class="tab-pane active" id="tab-overview">
+          <p class="detail-description">{{ medicine.description }}</p>
+
+          <div class="info-section">
+            <h4>✅ Uses &amp; Benefits</h4>
+            <ul class="info-list">
+              {% for use in medicine.uses %}
+              <li>{{ use }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          <!-- AI Assistant preview -->
+          <div class="ai-assistant-box">
+            <div class="header">
+              <span style="font-size:1.4rem;">🤖</span>
+              <h4>AI Health Assistant</h4>
+              <span class="ai-chip">AI</span>
+            </div>
+            <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:12px;">
+              Have questions about this medicine? Ask our AI assistant:
+            </p>
+            <div class="ai-questions">
+              <button class="ai-q-btn" onclick="showAiAnswer(this, 'food')">
+                🍽️ Can I take {{ medicine.name }} after food?
+              </button>
+              <button class="ai-q-btn" onclick="showAiAnswer(this, 'bloating')">
+                😣 Does {{ medicine.name }} cause bloating?
+              </button>
+              <button class="ai-q-btn" onclick="showAiAnswer(this, 'missed')">
+                ⏰ What if I miss a dose?
+              </button>
+            </div>
+            <div class="ai-answer" id="aiAnswer">
+              <div class="ai-label">🤖 AI Health Assistant</div>
+              <div id="aiAnswerText"></div>
+            </div>
+            <p style="font-size:.72rem;color:var(--text-muted);margin-top:12px;">
+              ⚠️ AI responses are for educational purposes only. Always consult a licensed doctor for medical advice.
+            </p>
+          </div>
+        </div>
+
+        <!-- Dosage tab -->
+        <div class="tab-pane" id="tab-dosage">
+          <div class="info-section">
+            <h4>💊 Recommended Dosage</h4>
+            <p style="font-size:.92rem;color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+              {{ medicine.dosage }}
+            </p>
+          </div>
+          <div class="info-section">
+            <h4>⚠️ Precautions</h4>
+            <ul class="info-list warn">
+              {% for p in medicine.precautions %}
+              <li>{{ p }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <!-- Side effects tab -->
+        <div class="tab-pane" id="tab-sideeffects">
+          <div class="info-section">
+            <h4>⚠️ Possible Side Effects</h4>
+            <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px;">
+              Not everyone experiences these. Consult your doctor if any side effect persists.
+            </p>
+            <ul class="info-list danger">
+              {% for se in medicine.side_effects %}
+              <li>{{ se }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <!-- Interactions tab -->
+        <div class="tab-pane" id="tab-interactions">
+          <div class="info-section">
+            <h4>↔️ Drug Interactions</h4>
+            <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px;">
+              Tell your doctor about all medications you are currently taking.
+            </p>
+            <ul class="info-list info">
+              {% for i in medicine.interactions %}
+              <li>{{ i }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <!-- Product info tab -->
+        <div class="tab-pane" id="tab-info">
+          <table class="med-info-table">
+            <tr><td>Brand</td><td>{{ medicine.brand }}</td></tr>
+            <tr><td>Manufacturer</td><td>{{ medicine.manufacturer }}</td></tr>
+            <tr><td>Category</td><td>{{ medicine.category }}</td></tr>
+            <tr><td>Pack Size</td><td>{{ medicine.pack_size }}</td></tr>
+            <tr><td>MRP</td><td>₹{{ medicine.mrp }}</td></tr>
+            <tr><td>Selling Price</td><td>₹{{ medicine.price }}</td></tr>
+            <tr><td>Discount</td><td>{{ medicine.discount }}%</td></tr>
+            <tr><td>Prescription Required</td><td>{{ 'Yes' if medicine.prescription_required else 'No' }}</td></tr>
+            <tr><td>Availability</td><td>{{ 'In Stock' if medicine.in_stock else 'Out of Stock' }}</td></tr>
+            <tr><td>Rating</td><td>{{ medicine.rating }} / 5 ({{ medicine.reviews }} reviews)</td></tr>
+          </table>
+        </div>
+
+      </div><!-- end tabs -->
+    </div><!-- end detail-info -->
+
+  </div><!-- end detail-layout -->
+</div><!-- end container -->
+
+<!-- ── Related Medicines ── -->
+{% if related %}
+<section class="related-section">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Related Medicines</h2>
+        <p class="section-sub">More in {{ medicine.category }}</p>
+      </div>
+      <a href="/medicines?category={{ medicine.category | urlencode }}" class="view-all">View all →</a>
+    </div>
+    <div class="related-grid">
+      {% for med in related %}
+      <div class="med-card">
+        {% if med.prescription_required %}
+        <div class="rx-tag">Rx</div>
+        {% endif %}
+        <div class="discount-tag">{{ med.discount }}% OFF</div>
+        <a href="/medicine/{{ med.id }}">
+          <img src="{{ med.image }}" alt="{{ med.name }}" class="med-card-img" loading="lazy"
+               data-name="{{ med.name }}" data-category="{{ med.category }}"
+               onerror="handleImgError(this)" />
+        </a>
+        <div class="med-card-body">
+          <div class="med-card-category">{{ med.category }}</div>
+          <a href="/medicine/{{ med.id }}"><h4 class="med-card-name">{{ med.name }}</h4></a>
+          <div class="med-card-brand">by {{ med.brand }}</div>
+          <div class="med-card-rating">
+            <span class="stars">{% for i in range(med.rating | int) %}★{% endfor %}</span>
+            <span class="rating-text">{{ med.rating }}</span>
+          </div>
+          <div class="med-card-price">
+            <span class="price">₹{{ med.price }}</span>
+            <span class="mrp">₹{{ med.mrp }}</span>
+            <span class="disc-badge">{{ med.discount }}% off</span>
+          </div>
+          <div class="med-card-footer">
+            <button
+              class="add-cart-btn"
+              onclick="addToCart({{ med.id }}, {{ med.name | tojson }}, {{ med.price }}, {{ med.image | tojson }})"
+              id="cartBtn-{{ med.id }}"
+            >🛒 Add to Cart</button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── Tab switching ──
+  function openTab(tabId, btn) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── Quantity ──
+  function changeQty(delta) {
+    const input = document.getElementById('qtyInput');
+    let val = parseInt(input.value) + delta;
+    if (val < 1) val = 1;
+    if (val > 20) val = 20;
+    input.value = val;
+  }
+
+  // ── Add to cart from detail page ──
+  function addToCartDetail() {
+    const qty = parseInt(document.getElementById('qtyInput').value);
+    const btn = document.getElementById('detailCartBtn');
+    for (let i = 0; i < qty; i++) {
+      addToCart({{ medicine.id }}, {{ medicine.name | tojson }}, {{ medicine.price }}, {{ medicine.image | tojson }});
+    }
+    btn.textContent = '✅ Added to Cart!';
+    btn.style.background = 'var(--success)';
+    setTimeout(() => {
+      btn.innerHTML = '🛒 Add to Cart';
+      btn.style.background = '';
+    }, 2000);
+  }
+
+  // ── Buy now ──
+  function buyNow() {
+    addToCartDetail();
+    setTimeout(() => window.location.href = '/cart', 400);
+  }
+
+  // ── AI Answers (Phase 1 mock — Phase 4 will use real AI) ──
+  const AI_ANSWERS = {
+    food: {{ ("Can " + medicine.name + " be taken after food? Generally yes — taking " + medicine.name + " with or after food reduces the chance of stomach upset. It also helps with absorption. Always follow your doctor's specific instructions.") | tojson }},
+    bloating: {{ ("Bloating is not a common side effect of " + medicine.name + ". However, individual responses vary. If you experience persistent bloating or stomach discomfort, consult your doctor. Avoiding carbonated drinks while on medication can help.") | tojson }},
+    missed: {{ ("If you miss a dose of " + medicine.name + ", take it as soon as you remember — unless it is almost time for your next dose. In that case, skip the missed dose and continue your regular schedule. Never double up to compensate.") | tojson }}
+  };
+
+  function showAiAnswer(btn, key) {
+    const answerBox = document.getElementById('aiAnswer');
+    const answerText = document.getElementById('aiAnswerText');
+    answerText.textContent = AI_ANSWERS[key];
+    answerBox.classList.add('visible');
+    answerBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Highlight selected question
+    document.querySelectorAll('.ai-q-btn').forEach(b => b.style.background = '');
+    btn.style.background = 'rgba(10,110,110,.06)';
+    btn.style.borderColor = 'var(--primary)';
+    btn.style.color = 'var(--primary)';
+  }
+</script>
+{% endblock %}

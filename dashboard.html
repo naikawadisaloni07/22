@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — MediSmart AI{% endblock %}
+
+{% block extra_css %}
+<style>
+.health-score-ring {
+  width: 110px; height: 110px; border-radius: 50%;
+  background: conic-gradient(var(--primary) 270deg, var(--bg-muted) 0deg);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; flex-shrink: 0;
+}
+.health-score-ring::before {
+  content: ''; position: absolute; inset: 12px;
+  border-radius: 50%; background: #fff;
+}
+.health-score-inner {
+  position: relative; z-index: 1; text-align: center;
+}
+.health-score-inner .score { font-size: 1.5rem; font-weight: 900; color: var(--primary); }
+.health-score-inner .lbl  { font-size: .58rem; color: var(--text-muted); font-weight: 600; }
+.profile-banner {
+  background: linear-gradient(135deg, #064f4f 0%, #0a6e6e 60%, #0891b2 100%);
+  padding: 32px 0;
+}
+.profile-inner {
+  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+}
+.profile-avatar {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(255,255,255,.2); border: 3px solid rgba(255,255,255,.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 800; color: #fff;
+  font-family: var(--font-heading); flex-shrink: 0;
+}
+.profile-text h1 { color: #fff; font-size: 1.4rem; margin-bottom: 4px; }
+.profile-text p  { color: rgba(255,255,255,.7); font-size: .84rem; }
+.profile-badges  { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.profile-badge {
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+  color: #fff; padding: 4px 12px; border-radius: 9999px;
+  font-size: .75rem; font-weight: 600;
+}
+.status-dot {
+  width: 9px; height: 9px; border-radius: 50%; display: inline-block;
+}
+.empty-section {
+  text-align: center; padding: 32px 16px;
+  color: var(--text-muted); font-size: .85rem;
+}
+.empty-section .e-icon { font-size: 2.2rem; margin-bottom: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Profile banner ── -->
+<div class="profile-banner">
+  <div class="container">
+    <div class="profile-inner">
+      <div class="profile-avatar">{{ user.name[0] | upper }}</div>
+      <div class="profile-text">
+        <h1>Welcome back, {{ user.name.split()[0] }}! 👋</h1>
+        <p>{{ user.email }}{% if user.phone %} · {{ user.phone }}{% endif %}</p>
+        <div class="profile-badges">
+          <span class="profile-badge">✅ Verified Member</span>
+          <span class="profile-badge">💊 {{ reminders|length }} Active Reminder{{ 's' if reminders|length != 1 }}</span>
+          <span class="profile-badge">👨‍⚕️ {{ bookings|length }} Consultation{{ 's' if bookings|length != 1 }}</span>
+          <span class="profile-badge">📋 {{ prescriptions|length }} Prescription{{ 's' if prescriptions|length != 1 }}</span>
+        </div>
+      </div>
+      <!-- Health score ring -->
+      <div style="margin-left:auto;" class="health-score-ring">
+        <div class="health-score-inner">
+          <div class="score">75</div>
+          <div class="lbl">HEALTH<br>SCORE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main content ── -->
+<div class="container" style="padding:28px 20px 64px;">
+
+  <!-- Stats row -->
+  <div class="dash-grid">
+    <div class="dash-stat">
+      <div class="dash-stat-icon" style="background:#dcfce7;">💊</div>
+      <div class="dash-stat-body">
+        <div class="num">{{ reminders|length }}</div>
+        <div class="lbl">Active Reminders</div>
+      </div>
+    </div>
+    <div class="dash-stat">
+      <div class="dash-stat-icon" style="background:#e0f2fe;">👨‍⚕️</div>
+      <div class="dash-stat-body">
+        <div class="num">{{ bookings|length }}</div>
+        <div class="lbl">Consultations</div>
+      </div>
+    </div>
+    <div class="dash-stat">
+      <div class="dash-stat-icon" style="background:#fef3c7;">📋</div>
+      <div class="dash-stat-body">
+        <div class="num">{{ prescriptions|length }}</div>
+        <div class="lbl">Prescriptions</div>
+      </div>
+    </div>
+    <div class="dash-stat">
+      <div class="dash-stat-icon" style="background:#fce4ec;">🛒</div>
+      <div class="dash-stat-body">
+        <div class="num" id="dashCartCount">0</div>
+        <div class="lbl">Items in Cart</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="dash-section">
+    <div class="dash-section-title">⚡ Quick Actions</div>
+    <div class="dash-quick-actions">
+      <a href="/medicines" class="quick-action">
+        <div class="qa-icon">💊</div>
+        <h4>Order Medicines</h4>
+        <span style="font-size:.72rem;color:var(--text-muted);">Up to 35% off</span>
+      </a>
+      <a href="/consult" class="quick-action">
+        <div class="qa-icon">👨‍⚕️</div>
+        <h4>Consult Doctor</h4>
+        <span style="font-size:.72rem;color:var(--text-muted);">From ₹199</span>
+      </a>
+      <a href="/ai-assistant" class="quick-action">
+        <div class="qa-icon">🤖</div>
+        <h4>AI Assistant</h4>
+        <span style="font-size:.72rem;color:var(--text-muted);">Ask anything</span>
+      </a>
+      <a href="/prescription" class="quick-action">
+        <div class="qa-icon">📋</div>
+        <h4>Upload Rx</h4>
+        <span style="font-size:.72rem;color:var(--text-muted);">Upload prescription</span>
+      </a>
+      <a href="/reminders" class="quick-action">
+        <div class="qa-icon">⏰</div>
+        <h4>Set Reminder</h4>
+        <span style="font-size:.72rem;color:var(--text-muted);">Never miss a dose</span>
+      </a>
+      <a href="/cart" class="quick-action">
+        <div class="qa-icon">🛒</div>
+        <h4>View Cart</h4>
+        <span style="font-size:.72rem;color:var(--text-muted);">Checkout items</span>
+      </a>
+      <a href="/medicines?sort=discount" class="quick-action">
+        <div class="qa-icon">🏷</div>
+        <h4>Best Offers</h4>
+        <span style="font-size:.72rem;color:var(--text-muted);">Top discounts</span>
+      </a>
+      <a href="/medicines?category=Vitamins" class="quick-action">
+        <div class="qa-icon">⚡</div>
+        <h4>Vitamins</h4>
+        <span style="font-size:.72rem;color:var(--text-muted);">Supplements</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Two-column layout -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    <!-- Reminders -->
+    <div class="dash-section">
+      <div class="dash-section-title" style="justify-content:space-between;">
+        <span>⏰ Medicine Reminders</span>
+        <a href="/reminders" style="font-size:.78rem;color:var(--primary);font-weight:600;">
+          Manage all →
+        </a>
+      </div>
+      {% if reminders %}
+        {% for r in reminders[:4] %}
+        <div class="dash-item">
+          <div style="width:40px;height:40px;border-radius:10px;
+                      background:linear-gradient(135deg,var(--primary),var(--primary-light));
+                      display:flex;align-items:center;justify-content:center;
+                      color:#fff;font-size:.75rem;font-weight:800;flex-shrink:0;line-height:1.2;
+                      text-align:center;">
+            {{ r.time }}
+          </div>
+          <div class="info">
+            <div class="name">{{ r.medicine_name }}</div>
+            <div class="meta">
+              {{ r.dose or '—' }} ·
+              {{ r.repeat | replace('_',' ') | title }}
+              {% if r.notes %} · {{ r.notes }}{% endif %}
+            </div>
+          </div>
+          <span class="status-dot" style="background:var(--success);"></span>
+        </div>
+        {% endfor %}
+        {% if reminders|length > 4 %}
+        <div style="text-align:center;padding-top:10px;">
+          <a href="/reminders" style="font-size:.82rem;color:var(--primary);font-weight:600;">
+            +{{ reminders|length - 4 }} more reminders →
+          </a>
+        </div>
+        {% endif %}
+      {% else %}
+        <div class="empty-section">
+          <div class="e-icon">⏰</div>
+          <p>No reminders yet.</p>
+          <a href="/reminders" class="btn btn-primary btn-sm" style="margin-top:10px;">
+            Set Reminder
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Consultations -->
+    <div class="dash-section">
+      <div class="dash-section-title" style="justify-content:space-between;">
+        <span>👨‍⚕️ My Consultations</span>
+        <a href="/consult" style="font-size:.78rem;color:var(--primary);font-weight:600;">
+          Book new →
+        </a>
+      </div>
+      {% if bookings %}
+        {% for b in bookings[:4] %}
+        <div class="dash-item">
+          <div style="width:40px;height:40px;border-radius:10px;
+                      background:#e0f2fe;display:flex;align-items:center;
+                      justify-content:center;font-size:1.1rem;flex-shrink:0;">
+            {% if b.consult_type == 'video' %}📹
+            {% elif b.consult_type == 'audio' %}📞
+            {% else %}💬{% endif %}
+          </div>
+          <div class="info">
+            <div class="name">{{ b.doctor_name }}</div>
+            <div class="meta">
+              {{ b.specialty }} ·
+              {{ b.date }} {{ b.slot }} ·
+              ₹{{ b.fee }}
+            </div>
+          </div>
+          <span class="badge badge-success" style="white-space:nowrap;font-size:.68rem;">
+            {{ b.status }}
+          </span>
+        </div>
+        {% endfor %}
+        {% if bookings|length > 4 %}
+        <div style="text-align:center;padding-top:10px;">
+          <a href="/consult" style="font-size:.82rem;color:var(--primary);font-weight:600;">
+            +{{ bookings|length - 4 }} more →
+          </a>
+        </div>
+        {% endif %}
+      {% else %}
+        <div class="empty-section">
+          <div class="e-icon">👨‍⚕️</div>
+          <p>No consultations booked yet.</p>
+          <a href="/consult" class="btn btn-primary btn-sm" style="margin-top:10px;">
+            Consult a Doctor
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+  </div><!-- end 2-col -->
+
+  <!-- Prescriptions + Health tips row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px;">
+
+    <!-- Prescriptions -->
+    <div class="dash-section">
+      <div class="dash-section-title" style="justify-content:space-between;">
+        <span>📋 My Prescriptions</span>
+        <a href="/prescription" style="font-size:.78rem;color:var(--primary);font-weight:600;">
+          Upload new →
+        </a>
+      </div>
+      {% if prescriptions %}
+        {% for p in prescriptions[:4] %}
+        <div class="dash-item">
+          <div style="width:40px;height:40px;border-radius:10px;background:#fef3c7;
+                      display:flex;align-items:center;justify-content:center;
+                      font-size:1.2rem;flex-shrink:0;">📄</div>
+          <div class="info">
+            <div class="name">{{ p.filename }}</div>
+            <div class="meta">
+              {% if p.doctor_name %}Dr. {{ p.doctor_name }} · {% endif %}
+              {{ p.notes[:40] + '…' if p.notes|length > 40 else p.notes or 'No notes' }}
+            </div>
+          </div>
+          <span class="badge
+            {% if p.status == 'Verified' %}badge-success
+            {% elif p.status == 'Rejected' %}badge-danger
+            {% else %}badge-warning{% endif %}">
+            {{ p.status }}
+          </span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-section">
+          <div class="e-icon">📋</div>
+          <p>No prescriptions uploaded yet.</p>
+          <a href="/prescription" class="btn btn-primary btn-sm" style="margin-top:10px;">
+            Upload Prescription
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Health tips -->
+    <div class="dash-section">
+      <div class="dash-section-title">💡 Health Tips for You</div>
+      {% for tip in [
+        ('💧', 'Stay Hydrated', 'Drink at least 8 glasses of water daily for optimal health.'),
+        ('🧘', 'Manage Stress', '10 minutes of meditation daily reduces cortisol by 20%.'),
+        ('💊', 'Take Medicines on Time', 'Consistent timing improves medication effectiveness.'),
+        ('🚶', 'Stay Active', '30 minutes of walking daily reduces heart disease risk by 35%.'),
+      ] %}
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;
+                  border-bottom:1px solid var(--border);">
+        <span style="font-size:1.2rem;flex-shrink:0;">{{ tip[0] }}</span>
+        <div>
+          <div style="font-size:.86rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">
+            {{ tip[1] }}
+          </div>
+          <div style="font-size:.78rem;color:var(--text-muted);line-height:1.5;">{{ tip[2] }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div><!-- end bottom 2-col -->
+
+  <!-- Account settings strip -->
+  <div class="dash-section" style="margin-top:24px;">
+    <div class="dash-section-title">⚙️ Account Settings</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+      {% for item in [
+        ('👤', 'Edit Profile',    '#'),
+        ('🔐', 'Change Password', '#'),
+        ('📍', 'Saved Addresses', '#'),
+        ('🚪', 'Logout',         '/logout'),
+      ] %}
+      <a href="{{ item[2] }}"
+         style="display:flex;align-items:center;gap:10px;padding:12px 14px;
+                border-radius:var(--radius-sm);border:1px solid var(--border);
+                font-size:.86rem;font-weight:600;color:var(--text-secondary);
+                transition:var(--transition);text-decoration:none;
+                {% if item[1]=='Logout' %}color:var(--danger);border-color:#fecaca;{% endif %}"
+         onmouseover="this.style.background='var(--bg-muted)'"
+         onmouseout="this.style.background=''">
+        <span style="font-size:1.1rem;">{{ item[0] }}</span>
+        {{ item[1] }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+</div><!-- end container -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Show cart item count from localStorage
+document.addEventListener('DOMContentLoaded', function() {
+  const cart  = JSON.parse(localStorage.getItem('medismart_cart') || '[]');
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  const el    = document.getElementById('dashCartCount');
+  if (el) el.textContent = count;
+});
+</script>
+{% endblock %}

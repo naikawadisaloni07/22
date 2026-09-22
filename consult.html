@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Consult a Doctor — MediSmart AI{% endblock %}
+
+{% block extra_css %}
+<style>
+.consult-hero {
+  background: linear-gradient(135deg, #064f4f 0%, #0a6e6e 60%, #0891b2 100%);
+  padding: 44px 0 0;
+}
+.consult-hero-inner {
+  display: grid; grid-template-columns: 1fr 420px;
+  align-items: end; gap: 40px;
+}
+.consult-hero h1 { color: #fff; font-size: 2rem; margin-bottom: 10px; }
+.consult-hero p  { color: rgba(255,255,255,.8); font-size: .95rem; margin-bottom: 20px; }
+.consult-stats   { display: flex; gap: 28px; flex-wrap: wrap; }
+.c-stat .num { font-size: 1.5rem; font-weight: 800; color: #fff; }
+.c-stat .lbl { font-size: .75rem; color: rgba(255,255,255,.65); }
+.symptom-box {
+  background: rgba(255,255,255,.12); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.2); border-radius: 20px 20px 0 0;
+  padding: 24px; color: #fff;
+}
+.symptom-box h3 { font-size: 1rem; margin-bottom: 14px; color: #fff; }
+.symptom-input-row {
+  display: flex; gap: 10px;
+}
+.symptom-input-row input {
+  flex: 1; padding: 11px 16px; border-radius: var(--radius-full);
+  border: none; font-size: .9rem; font-family: inherit; outline: none;
+  color: var(--text-primary);
+}
+.symptom-input-row button {
+  background: var(--accent); color: #fff; border: none;
+  border-radius: var(--radius-full); padding: 11px 20px;
+  font-weight: 700; font-size: .88rem; cursor: pointer;
+  transition: var(--transition); white-space: nowrap;
+}
+.symptom-input-row button:hover { background: #ea6c00; }
+.symptom-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.symptom-tag {
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+  color: #fff; padding: 5px 12px; border-radius: 9999px;
+  font-size: .78rem; font-weight: 500; cursor: pointer;
+  transition: var(--transition);
+}
+.symptom-tag:hover { background: rgba(255,255,255,.3); }
+
+/* Specialty filter bar */
+.spec-bar {
+  background: #fff; border-bottom: 1px solid var(--border);
+  padding: 16px 0; overflow-x: auto;
+}
+.spec-list { display: flex; gap: 8px; white-space: nowrap; min-width: max-content; }
+.spec-pill {
+  padding: 7px 16px; border-radius: 9999px;
+  border: 1.5px solid var(--border); background: #fff;
+  font-size: .83rem; font-weight: 600; cursor: pointer;
+  transition: var(--transition); color: var(--text-secondary);
+  text-decoration: none; display: inline-block;
+}
+.spec-pill:hover, .spec-pill.active {
+  border-color: var(--primary); color: var(--primary);
+  background: rgba(10,110,110,.06);
+}
+
+/* Doctor grid */
+.doctors-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 20px; padding: 32px 0 64px;
+}
+.doctor-card-langs {
+  display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.lang-tag {
+  background: var(--bg-muted); color: var(--text-muted);
+  font-size: .7rem; padding: 2px 8px; border-radius: 9999px;
+}
+.ai-rec-badge {
+  position: absolute; top: 12px; right: 12px;
+  background: linear-gradient(135deg, var(--primary), #0891b2);
+  color: #fff; font-size: .7rem; font-weight: 700;
+  padding: 3px 10px; border-radius: 9999px;
+}
+@media (max-width: 1024px) { .doctors-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 768px)  {
+  .consult-hero-inner { grid-template-columns: 1fr; }
+  .symptom-box { border-radius: 20px; }
+  .doctors-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero + symptom search -->
+<div class="consult-hero">
+  <div class="container">
+    <div class="consult-hero-inner">
+      <div>
+        <div style="display:inline-flex;align-items:center;gap:8px;
+                    background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+                    border-radius:9999px;padding:5px 14px;font-size:.78rem;
+                    color:#fff;margin-bottom:14px;">
+          🤖 AI-powered doctor recommendation
+        </div>
+        <h1>Find the Right Doctor,<br>Instantly</h1>
+        <p>Consult 500+ verified MBBS/MD doctors via chat, audio, or video.<br>Consultations starting at just ₹199.</p>
+        <div class="consult-stats">
+          <div class="c-stat"><div class="num">500+</div><div class="lbl">Verified Doctors</div></div>
+          <div class="c-stat"><div class="num">₹199</div><div class="lbl">Starting Fee</div></div>
+          <div class="c-stat"><div class="num">15min</div><div class="lbl">Avg Wait Time</div></div>
+          <div class="c-stat"><div class="num">4.8⭐</div><div class="lbl">Avg Rating</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="symptom-box">
+          <h3>🤖 AI Doctor Recommendation</h3>
+          <p style="font-size:.82rem;color:rgba(255,255,255,.75);margin-bottom:12px;">
+            Describe your symptoms and our AI will suggest the right specialist.
+          </p>
+          <form method="GET" action="/consult">
+            <div class="symptom-input-row">
+              <input type="text" name="symptom"
+                     value="{{ symptom_query }}"
+                     placeholder="e.g. chest pain, fever, skin rash…" />
+              <button type="submit">Find Doctor →</button>
+            </div>
+          </form>
+          <div class="symptom-tags">
+            {% for s in ['Fever','Chest pain','Skin rash','Diabetes','Anxiety','Back pain','PCOS','Child fever'] %}
+            <a href="/consult?symptom={{ s | lower | urlencode }}" class="symptom-tag">{{ s }}</a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Specialty filter bar -->
+<div class="spec-bar">
+  <div class="container">
+    <div class="spec-list">
+      <a href="/consult" class="spec-pill {% if not active_specialty %}active{% endif %}">All Specialties</a>
+      {% for s in specialties %}
+      <a href="/consult?specialty={{ s | urlencode }}"
+         class="spec-pill {% if active_specialty == s %}active{% endif %}">{{ s }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- AI recommendation notice -->
+{% if symptom_query %}
+<div style="background:linear-gradient(135deg,#f0fdf4,#e0f2fe);
+            border-bottom:1px solid #bae6fd;padding:14px 0;">
+  <div class="container" style="display:flex;align-items:center;gap:12px;font-size:.88rem;">
+    <span style="font-size:1.3rem;">🤖</span>
+    <span>
+      <strong>AI Recommendation:</strong> Based on your symptoms
+      <em>"{{ symptom_query }}"</em>, we recommend consulting the specialists below.
+    </span>
+    <a href="/consult" style="margin-left:auto;color:var(--primary);font-weight:600;white-space:nowrap;">
+      View all doctors →
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Doctors listing -->
+<div class="container">
+  <div style="padding:24px 0 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h2 style="font-size:1.3rem;margin-bottom:2px;">
+        {% if symptom_query %}Recommended for "{{ symptom_query }}"
+        {% elif active_specialty %}{{ active_specialty }} Specialists
+        {% else %}All Available Doctors{% endif %}
+      </h2>
+      <p style="font-size:.84rem;color:var(--text-muted);">
+        {{ doctors | length }} doctor{{ 's' if doctors|length != 1 }} available
+      </p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="/consult?sort=rating"   class="btn btn-ghost btn-sm">⭐ Top Rated</a>
+      <a href="/consult?sort=fee_asc"  class="btn btn-ghost btn-sm">₹ Lowest Fee</a>
+    </div>
+  </div>
+
+  {% if doctors %}
+  <div class="doctors-grid">
+    {% for doc in doctors %}
+    <div class="doctor-card" style="position:relative;">
+      {% if symptom_query %}<div class="ai-rec-badge">🤖 AI Pick</div>{% endif %}
+
+      <div class="doctor-card-top">
+        <img src="{{ doc.image }}" alt="{{ doc.name }}" class="doctor-img"
+             onerror="this.src='https://ui-avatars.com/api/?name={{ doc.name | urlencode }}&background=0a6e6e&color=fff&size=72'" />
+        <div class="doctor-info">
+          <div class="doctor-name">{{ doc.name }}</div>
+          <div class="doctor-spec">{{ doc.specialty }}</div>
+          <div class="doctor-exp">{{ doc.experience }} years experience</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+            <span class="stars" style="font-size:.85rem;">
+              {% for i in range(doc.rating | int) %}★{% endfor %}
+            </span>
+            <span style="font-size:.78rem;color:var(--text-muted);">
+              {{ doc.rating }} ({{ doc.reviews }})
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="doctor-card-body">
+        <!-- Languages -->
+        <div class="doctor-card-langs">
+          {% for lang in doc.languages %}
+          <span class="lang-tag">{{ lang }}</span>
+          {% endfor %}
+        </div>
+
+        <!-- Fees -->
+        <div class="doctor-fees">
+          <div class="fee-pill">💬 Chat <span>₹{{ doc.fee_chat }}</span></div>
+          <div class="fee-pill">📞 Audio <span>₹{{ doc.fee_audio }}</span></div>
+          <div class="fee-pill">📹 Video <span>₹{{ doc.fee_video }}</span></div>
+        </div>
+
+        {% if doc.discount %}
+        <div style="font-size:.75rem;color:var(--success);font-weight:700;margin-bottom:10px;">
+          🎉 {{ doc.discount }}% off — Limited time offer
+        </div>
+        {% endif %}
+
+        <!-- Availability -->
+        <div style="font-size:.8rem;margin-bottom:12px;color:var(--text-secondary);">
+          {% if doc.available %}
+          <span class="available-dot"></span>Available now ·
+          Next slot: <strong>{{ doc.slots[0] }}</strong>
+          {% else %}
+          <span class="unavailable-dot available-dot"></span>
+          <span style="color:var(--text-muted);">Currently unavailable</span>
+          {% endif %}
+        </div>
+
+        <div style="display:flex;gap:8px;">
+          <a href="/consult/{{ doc.id }}" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;">
+            View Profile
+          </a>
+          <a href="/book/{{ doc.id }}" class="btn btn-primary btn-sm" style="flex:1;justify-content:center;">
+            Book Now
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="no-results" style="padding:60px 20px;text-align:center;">
+    <div style="font-size:3rem;margin-bottom:16px;">👨‍⚕️</div>
+    <h3>No doctors found</h3>
+    <p style="margin-bottom:20px;">Try a different symptom or browse all specialties.</p>
+    <a href="/consult" class="btn btn-primary">View All Doctors</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('nav-consult') && document.getElementById('nav-consult').classList.add('active');
+</script>
+{% endblock %}

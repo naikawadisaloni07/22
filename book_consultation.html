@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Book Consultation — {{ doctor.name }}{% endblock %}
+{% block content %}
+
+<div class="med-page-header">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="/">Home</a><span>›</span>
+      <a href="/consult">Consult</a><span>›</span>
+      <a href="/consult/{{ doctor.id }}">{{ doctor.name }}</a><span>›</span>
+      <span class="active">Book</span>
+    </div>
+    <h1>Book Consultation</h1>
+    <p>{{ doctor.name }} · {{ doctor.specialty }}</p>
+  </div>
+</div>
+
+<div class="container" style="padding:36px 20px 64px;">
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:start;">
+
+    <!-- Booking form -->
+    <div style="background:#fff;border-radius:var(--radius-md);border:1px solid var(--border);padding:28px;">
+      <form method="POST" action="/book/{{ doctor.id }}" id="bookForm">
+
+        <!-- Step 1: Consultation type -->
+        <div style="margin-bottom:24px;">
+          <h3 style="margin-bottom:16px;font-size:1rem;">Step 1 — Choose Consultation Type</h3>
+          <div class="consult-type-grid">
+            <div class="consult-type-card selected" id="ct-chat" onclick="selectType('chat', {{ doctor.fee_chat }})">
+              <div class="ctype-icon">💬</div>
+              <h4>Chat</h4>
+              <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px;">Text messages</p>
+              <div class="fee">₹{{ doctor.fee_chat }}</div>
+            </div>
+            <div class="consult-type-card" id="ct-audio" onclick="selectType('audio', {{ doctor.fee_audio }})">
+              <div class="ctype-icon">📞</div>
+              <h4>Audio Call</h4>
+              <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px;">Voice consultation</p>
+              <div class="fee">₹{{ doctor.fee_audio }}</div>
+            </div>
+            <div class="consult-type-card" id="ct-video" onclick="selectType('video', {{ doctor.fee_video }})">
+              <div class="ctype-icon">📹</div>
+              <h4>Video Call</h4>
+              <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px;">Face-to-face online</p>
+              <div class="fee">₹{{ doctor.fee_video }}</div>
+            </div>
+          </div>
+          <input type="hidden" name="consult_type" id="consultTypeInput" value="chat" />
+        </div>
+
+        <!-- Step 2: Date -->
+        <div style="margin-bottom:24px;">
+          <h3 style="margin-bottom:12px;font-size:1rem;">Step 2 — Select Date</h3>
+          <input type="date" name="date" id="dateInput" class="input"
+                 min="{{ '' }}" required
+                 style="max-width:280px;" />
+        </div>
+
+        <!-- Step 3: Time slot -->
+        <div style="margin-bottom:24px;">
+          <h3 style="margin-bottom:12px;font-size:1rem;">Step 3 — Choose Time Slot</h3>
+          <div class="slot-grid" id="slotGrid">
+            {% for slot in doctor.slots %}
+            <button type="button" class="slot-btn {% if loop.first %}selected{% endif %}"
+                    onclick="selectSlot(this, '{{ slot }}')">
+              {{ slot }}
+            </button>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="slot" id="slotInput"
+                 value="{{ doctor.slots[0] if doctor.slots else '' }}" />
+        </div>
+
+        <!-- Step 4: Symptoms -->
+        <div style="margin-bottom:24px;">
+          <h3 style="margin-bottom:12px;font-size:1rem;">Step 4 — Describe Your Symptoms</h3>
+          <textarea name="symptoms" class="textarea" rows="4"
+                    placeholder="Describe your symptoms, concerns, or what you'd like to discuss with the doctor…"
+                    required></textarea>
+        </div>
+
+        <!-- Fee summary -->
+        <div style="background:var(--bg-muted);border-radius:var(--radius-md);
+                    padding:16px 18px;margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;padding:6px 0;
+                      font-size:.88rem;color:var(--text-secondary);">
+            <span>Consultation fee</span>
+            <span id="feeDisplay" style="font-weight:700;color:var(--text-primary);">
+              ₹{{ doctor.fee_chat }}
+            </span>
+          </div>
+          {% if doctor.discount %}
+          <div style="display:flex;justify-content:space-between;padding:6px 0;
+                      font-size:.88rem;border-bottom:1px solid var(--border);">
+            <span style="color:var(--success);">Discount ({{ doctor.discount }}%)</span>
+            <span style="color:var(--success);font-weight:700;" id="discDisplay">
+              −₹{{ (doctor.fee_chat * doctor.discount / 100) | int }}
+            </span>
+          </div>
+          {% endif %}
+          <div style="display:flex;justify-content:space-between;padding:8px 0 0;
+                      font-size:1rem;font-weight:800;">
+            <span>Total Payable</span>
+            <span id="totalDisplay" style="color:var(--primary);">
+              ₹{{ (doctor.fee_chat * (100 - doctor.discount) / 100) | int if doctor.discount else doctor.fee_chat }}
+            </span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg">
+          🔒 Confirm & Book Consultation
+        </button>
+        <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin-top:10px;">
+          Payment collected at time of consultation · Free cancellation 2 hrs before
+        </p>
+      </form>
+    </div>
+
+    <!-- Doctor summary -->
+    <div style="position:sticky;top:calc(var(--nav-height)+16px);">
+      <div style="background:#fff;border-radius:var(--radius-md);border:1px solid var(--border);padding:20px;">
+        <h4 style="margin-bottom:14px;font-size:.92rem;">Your Doctor</h4>
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:16px;">
+          <img src="{{ doctor.image }}" alt="{{ doctor.name }}"
+               style="width:64px;height:64px;border-radius:50%;object-fit:cover;"
+               onerror="this.src='https://ui-avatars.com/api/?name={{ doctor.name | urlencode }}&background=0a6e6e&color=fff&size=64'" />
+          <div>
+            <div style="font-weight:700;font-size:.95rem;">{{ doctor.name }}</div>
+            <div style="font-size:.8rem;color:var(--primary);font-weight:600;">{{ doctor.specialty }}</div>
+            <div style="font-size:.75rem;color:var(--text-muted);">{{ doctor.experience }} yrs exp</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;">
+          <span class="stars" style="font-size:.9rem;">
+            {% for i in range(doctor.rating|int) %}★{% endfor %}
+          </span>
+          <span style="font-size:.82rem;font-weight:700;">{{ doctor.rating }}</span>
+          <span style="font-size:.78rem;color:var(--text-muted);">({{ doctor.reviews }})</span>
+        </div>
+        <div style="font-size:.8rem;color:var(--text-muted);line-height:1.6;">
+          🎓 {{ doctor.education }}<br>
+          🏥 {{ doctor.hospital }}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const discount = {{ doctor.discount or 0 }};
+
+function selectType(type, fee) {
+  document.querySelectorAll('.consult-type-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('ct-' + type).classList.add('selected');
+  document.getElementById('consultTypeInput').value = type;
+  const disc  = Math.round(fee * discount / 100);
+  const total = fee - disc;
+  document.getElementById('feeDisplay').textContent  = '₹' + fee;
+  if (document.getElementById('discDisplay'))
+    document.getElementById('discDisplay').textContent = '−₹' + disc;
+  document.getElementById('totalDisplay').textContent = '₹' + total;
+}
+
+function selectSlot(btn, slot) {
+  document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('slotInput').value = slot;
+}
+
+// Set min date to today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('dateInput').min = today;
+document.getElementById('dateInput').value = today;
+</script>
+{% endblock %}
